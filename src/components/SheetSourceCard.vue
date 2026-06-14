@@ -4,9 +4,21 @@ defineProps({
         type: Object,
         required: true,
     },
+    canMoveUp: {
+        type: Boolean,
+        default: true,
+    },
+    canMoveDown: {
+        type: Boolean,
+        default: true,
+    },
+    disabled: {
+        type: Boolean,
+        default: false,
+    },
 })
 
-const emit = defineEmits(['remove', 'toggle-tab'])
+const emit = defineEmits(['remove', 'toggle-tab', 'move-up', 'move-down'])
 
 function toggleTab(tabGid) {
     emit('toggle-tab', tabGid)
@@ -17,12 +29,6 @@ function toggleTab(tabGid) {
     <article class="rounded-3xl border border-[#2c241f]/10 bg-white p-5">
         <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
-                <p
-                    class="mb-1 text-xs font-extrabold uppercase tracking-[0.12em] text-[#b7602a]"
-                >
-                    Google Sheet
-                </p>
-
                 <h2
                     class="mb-2 text-xl font-extrabold tracking-[-0.03em] text-[#2c241f]"
                 >
@@ -39,13 +45,36 @@ function toggleTab(tabGid) {
                 </a>
             </div>
 
-            <button
-                type="button"
-                class="shrink-0 cursor-pointer rounded-xl bg-[#ffe7de] px-4 py-2 text-sm font-bold text-[#9d321d] transition hover:bg-[#ffd4c6]"
-                @click="emit('remove')"
-            >
-                Remove
-            </button>
+            <div class="flex shrink-0 items-center gap-2">
+                <button
+                    type="button"
+                    :disabled="disabled || !canMoveUp"
+                    class="grid h-9 w-9 cursor-pointer place-items-center rounded-xl border border-[#2c241f]/10 bg-[#fffaf2] text-sm font-extrabold text-[#2c241f] transition hover:border-[#b7602a]/40 hover:bg-[#fff4df] disabled:cursor-not-allowed disabled:opacity-35"
+                    title="Move up"
+                    @click="emit('move-up')"
+                >
+                    ↑
+                </button>
+
+                <button
+                    type="button"
+                    :disabled="disabled || !canMoveDown"
+                    class="grid h-9 w-9 cursor-pointer place-items-center rounded-xl border border-[#2c241f]/10 bg-[#fffaf2] text-sm font-extrabold text-[#2c241f] transition hover:border-[#b7602a]/40 hover:bg-[#fff4df] disabled:cursor-not-allowed disabled:opacity-35"
+                    title="Move down"
+                    @click="emit('move-down')"
+                >
+                    ↓
+                </button>
+
+                <button
+                    type="button"
+                    :disabled="disabled"
+                    class="cursor-pointer rounded-xl bg-[#ffe7de] px-4 py-2 text-sm font-bold text-[#9d321d] transition hover:bg-[#ffd4c6] disabled:cursor-not-allowed disabled:opacity-35"
+                    @click="emit('remove')"
+                >
+                    Remove
+                </button>
+            </div>
         </div>
 
         <div class="mt-5">
@@ -70,7 +99,8 @@ function toggleTab(tabGid) {
                     <input
                         type="checkbox"
                         :checked="tab.selected"
-                        class="h-3.5 w-3.5 shrink-0 cursor-pointer accent-[#b7602a]"
+                        :disabled="disabled"
+                        class="h-3.5 w-3.5 shrink-0 cursor-pointer accent-[#b7602a] disabled:cursor-not-allowed"
                         @change="toggleTab(tab.gid)"
                     />
 

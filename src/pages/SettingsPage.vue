@@ -23,6 +23,10 @@ onMounted(async () => {
 })
 
 async function addSource() {
+    if (saving.value) {
+        return
+    }
+
     const value = sheetUrl.value.trim()
 
     errorMessage.value = ''
@@ -66,11 +70,19 @@ async function addSource() {
 }
 
 async function removeSource(sourceId) {
+    if (saving.value) {
+        return
+    }
+
     sources.value = sources.value.filter((source) => source.id !== sourceId)
     await persistSources()
 }
 
 async function toggleTab(sourceId, tabGid) {
+    if (saving.value) {
+        return
+    }
+
     const source = sources.value.find((item) => item.id === sourceId)
 
     if (!source) {
@@ -84,6 +96,50 @@ async function toggleTab(sourceId, tabGid) {
     }
 
     tab.selected = !tab.selected
+
+    await persistSources()
+}
+
+async function moveSourceUp(sourceId) {
+    if (saving.value) {
+        return
+    }
+
+    const index = sources.value.findIndex((source) => source.id === sourceId)
+
+    if (index <= 0) {
+        return
+    }
+
+    const updatedSources = [...sources.value]
+    const currentSource = updatedSources[index]
+
+    updatedSources.splice(index, 1)
+    updatedSources.splice(index - 1, 0, currentSource)
+
+    sources.value = updatedSources
+
+    await persistSources()
+}
+
+async function moveSourceDown(sourceId) {
+    if (saving.value) {
+        return
+    }
+
+    const index = sources.value.findIndex((source) => source.id === sourceId)
+
+    if (index === -1 || index >= sources.value.length - 1) {
+        return
+    }
+
+    const updatedSources = [...sources.value]
+    const currentSource = updatedSources[index]
+
+    updatedSources.splice(index, 1)
+    updatedSources.splice(index + 1, 0, currentSource)
+
+    sources.value = updatedSources
 
     await persistSources()
 }
@@ -125,12 +181,13 @@ async function persistSources() {
                 v-model="sheetUrl"
                 type="url"
                 placeholder="Paste Google Sheets link"
-                class="min-h-12 flex-1 rounded-2xl border border-[#2c241f]/15 bg-white px-4 text-[#2c241f] outline-none transition placeholder:text-[#9c8d80] focus:border-[#b7602a] focus:ring-4 focus:ring-[#b7602a]/15"
+                :disabled="loading || loadingSources || saving"
+                class="min-h-12 flex-1 rounded-2xl border border-[#2c241f]/15 bg-white px-4 text-[#2c241f] outline-none transition placeholder:text-[#9c8d80] focus:border-[#b7602a] focus:ring-4 focus:ring-[#b7602a]/15 disabled:cursor-not-allowed disabled:opacity-50"
             />
 
             <button
                 type="submit"
-                :disabled="loading || loadingSources"
+                :disabled="loading || loadingSources || saving"
                 class="min-h-12 cursor-pointer rounded-2xl bg-[#2c241f] px-6 font-bold text-[#fffaf2] transition hover:bg-[#b7602a] disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {{ loading ? 'Loading…' : 'Add sheet' }}
@@ -148,8 +205,8 @@ async function persistSources() {
                 </h2>
 
                 <span
-                    v-if="saving"
-                    class="rounded-full bg-[#fff4df] px-3 py-1 text-xs font-bold text-[#b7602a]"
+                    class="rounded-full bg-[#fff4df] px-3 py-1 text-xs font-bold text-[#b7602a] transition-opacity"
+                    :class="saving ? 'opacity-100' : 'opacity-0'"
                 >
                     Saving…
                 </span>
@@ -169,15 +226,25 @@ async function persistSources() {
                 No Google Sheets added yet.
             </div>
 
-            <div v-else class="grid gap-4">
+            <TransitionGroup
+                v-else
+                name="source-list"
+                tag="div"
+                class="relative grid gap-4"
+            >
                 <SheetSourceCard
-                    v-for="source in sources"
+                    v-for="(source, index) in sources"
                     :key="source.id"
                     :source="source"
+                    :can-move-up="index > 0"
+                    :can-move-down="index < sources.length - 1"
+                    :disabled="saving"
                     @remove="removeSource(source.id)"
                     @toggle-tab="toggleTab(source.id, $event)"
+                    @move-up="moveSourceUp(source.id)"
+                    @move-down="moveSourceDown(source.id)"
                 />
-            </div>
+            </TransitionGroup>
         </div>
     </section>
 </template>
@@ -188,5 +255,24 @@ async function persistSources() {
     background: #fffaf2;
     padding: 32px;
     box-shadow: 0 16px 40px rgb(44 36 31 / 8%);
+}
+
+:global(.source-list-move),
+:global(.source-list-enter-active),
+:global(.source-list-leave-active) {
+    transition:
+        transform 180ms ease,
+        opacity 180ms ease;
+}
+
+:global(.source-list-enter-from),
+:global(.source-list-leave-to) {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+:global(.source-list-leave-active) {
+    position: absolute;
+    width: 100%;
 }
 </style>
