@@ -1,13 +1,26 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import SheetSourceCard from '../components/SheetSourceCard.vue'
 import { getSpreadsheetInfo, isGoogleSheetsUrl } from '../services/googleSheets'
+import { loadSources, saveSources } from '../services/sourcesStore'
 
 const sheetUrl = ref('')
 const errorMessage = ref('')
 const loading = ref(false)
+const loadingSources = ref(true)
+const saving = ref(false)
 
 const sources = ref([])
+
+onMounted(async () => {
+    try {
+        sources.value = await loadSources()
+    } catch (error) {
+        errorMessage.value = 'Could not load saved Google Sheets sources.'
+    } finally {
+        loadingSources.value = false
+    }
+})
 
 async function addSource() {
     const value = sheetUrl.value.trim()
@@ -25,24 +38,24 @@ async function addSource() {
         return
     }
 
-    const alreadyAdded = sources.value.some(
-        (source) => source.id === extractSpreadsheetIdFromUrl(value),
-    )
-
-    if (alreadyAdded) {
-        errorMessage.value = 'This Google Sheet is already added.'
-        return
-    }
-
     loading.value = true
 
     try {
         const source = await getSpreadsheetInfo(value)
 
+        const alreadyAdded = sources.value.some((item) => item.id === source.id)
+
+        if (alreadyAdded) {
+            errorMessage.value = 'This Google Sheet is already added.'
+            return
+        }
+
         sources.value.push({
             ...source,
             error: '',
         })
+
+        await persistSources()
 
         sheetUrl.value = ''
     } catch (error) {
@@ -52,11 +65,12 @@ async function addSource() {
     }
 }
 
-function removeSource(sourceId) {
+async function removeSource(sourceId) {
     sources.value = sources.value.filter((source) => source.id !== sourceId)
+    await persistSources()
 }
 
-function toggleTab(sourceId, tabGid) {
+async function toggleTab(sourceId, tabGid) {
     const source = sources.value.find((item) => item.id === sourceId)
 
     if (!source) {
@@ -70,11 +84,20 @@ function toggleTab(sourceId, tabGid) {
     }
 
     tab.selected = !tab.selected
+
+    await persistSources()
 }
 
-function extractSpreadsheetIdFromUrl(url) {
-    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)
-    return match?.[1] || ''
+async function persistSources() {
+    saving.value = true
+
+    try {
+        await saveSources(sources.value)
+    } catch (error) {
+        errorMessage.value = 'Could not save Google Sheets sources.'
+    } finally {
+        saving.value = false
+    }
 }
 </script>
 
@@ -107,7 +130,7 @@ function extractSpreadsheetIdFromUrl(url) {
 
             <button
                 type="submit"
-                :disabled="loading"
+                :disabled="loading || loadingSources"
                 class="min-h-12 cursor-pointer rounded-2xl bg-[#2c241f] px-6 font-bold text-[#fffaf2] transition hover:bg-[#b7602a] disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {{ loading ? 'Loading…' : 'Add sheet' }}
@@ -118,13 +141,24 @@ function extractSpreadsheetIdFromUrl(url) {
             {{ errorMessage }}
         </p>
 
+        <p v-if="saving" class="mt-3 text-sm font-bold text-[#6f6258]">
+            Saving…
+        </p>
+
         <div class="mt-8">
             <h2 class="mb-4 text-xl font-extrabold tracking-[-0.03em]">
                 Added sources
             </h2>
 
             <div
-                v-if="!sources.length"
+                v-if="loadingSources"
+                class="rounded-2xl border border-dashed border-[#2c241f]/20 bg-white/50 p-6 text-[#6f6258]"
+            >
+                Loading saved sources…
+            </div>
+
+            <div
+                v-else-if="!sources.length"
                 class="rounded-2xl border border-dashed border-[#2c241f]/20 bg-white/50 p-6 text-[#6f6258]"
             >
                 No Google Sheets added yet.
