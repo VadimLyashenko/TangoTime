@@ -141,14 +141,19 @@ async function persistSources() {
             {{ errorMessage }}
         </p>
 
-        <p v-if="saving" class="mt-3 text-sm font-bold text-[#6f6258]">
-            Saving…
-        </p>
-
         <div class="mt-8">
-            <h2 class="mb-4 text-xl font-extrabold tracking-[-0.03em]">
-                Added sources
-            </h2>
+            <div class="mb-4 flex items-center gap-3">
+                <h2 class="text-xl font-extrabold tracking-[-0.03em]">
+                    Added sources
+                </h2>
+
+                <span
+                    v-if="saving"
+                    class="rounded-full bg-[#fff4df] px-3 py-1 text-xs font-bold text-[#b7602a]"
+                >
+                    Saving…
+                </span>
+            </div>
 
             <div
                 v-if="loadingSources"
