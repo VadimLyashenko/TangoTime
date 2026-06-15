@@ -1,5 +1,7 @@
 <script setup>
-defineProps({
+import { ref } from 'vue'
+
+const props = defineProps({
     source: {
         type: Object,
         required: true,
@@ -18,10 +20,30 @@ defineProps({
     },
 })
 
-const emit = defineEmits(['remove', 'toggle-tab', 'move-up', 'move-down'])
+const emit = defineEmits(['remove', 'set-tabs', 'move-up', 'move-down'])
+const lastSelectedTabIndex = ref(null)
 
-function toggleTab(tabGid) {
-    emit('toggle-tab', tabGid)
+function selectTabs(tab, tabIndex, event) {
+    const selected = event.currentTarget.checked
+    const tabs = event.shiftKey ? getTabsInRange(tabIndex) : [tab]
+
+    lastSelectedTabIndex.value = tabIndex
+
+    emit('set-tabs', {
+        tabGids: tabs.map((item) => item.gid),
+        selected,
+    })
+}
+
+function getTabsInRange(tabIndex) {
+    if (lastSelectedTabIndex.value === null) {
+        return [props.source.tabs[tabIndex]]
+    }
+
+    const start = Math.min(lastSelectedTabIndex.value, tabIndex)
+    const end = Math.max(lastSelectedTabIndex.value, tabIndex)
+
+    return props.source.tabs.slice(start, end + 1)
 }
 </script>
 
@@ -89,9 +111,9 @@ function toggleTab(tabGid) {
 
             <div v-else class="flex flex-wrap gap-2">
                 <label
-                    v-for="tab in source.tabs"
+                    v-for="(tab, index) in source.tabs"
                     :key="tab.gid"
-                    class="flex h-8 cursor-pointer items-center gap-2 rounded-full border border-[#2c241f]/10 bg-[#fffaf2] px-3 text-xs font-bold text-[#2c241f] transition hover:border-[#b7602a]/40 hover:bg-[#fff4df]"
+                    class="flex h-8 cursor-pointer select-none items-center gap-2 rounded-full border border-[#2c241f]/10 bg-[#fffaf2] px-3 text-xs font-bold text-[#2c241f] transition hover:border-[#b7602a]/40 hover:bg-[#fff4df]"
                     :class="
                         tab.selected ? 'border-[#b7602a]/60 bg-[#fff4df]' : ''
                     "
@@ -101,7 +123,7 @@ function toggleTab(tabGid) {
                         :checked="tab.selected"
                         :disabled="disabled"
                         class="h-3.5 w-3.5 shrink-0 cursor-pointer accent-[#b7602a] disabled:cursor-not-allowed"
-                        @change="toggleTab(tab.gid)"
+                        @click="selectTabs(tab, index, $event)"
                     />
 
                     <span class="max-w-30 truncate">

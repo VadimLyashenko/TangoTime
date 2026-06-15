@@ -78,7 +78,7 @@ async function removeSource(sourceId) {
     await persistSources()
 }
 
-async function toggleTab(sourceId, tabGid) {
+async function setTabs(sourceId, { tabGids, selected }) {
     if (saving.value) {
         return
     }
@@ -89,13 +89,16 @@ async function toggleTab(sourceId, tabGid) {
         return
     }
 
-    const tab = source.tabs.find((item) => item.gid === tabGid)
+    const selectedGids = new Set(tabGids)
+    const tabs = source.tabs.filter((tab) => selectedGids.has(tab.gid))
 
-    if (!tab) {
+    if (!tabs.length) {
         return
     }
 
-    tab.selected = !tab.selected
+    tabs.forEach((tab) => {
+        tab.selected = selected
+    })
 
     await persistSources()
 }
@@ -240,7 +243,7 @@ async function persistSources() {
                     :can-move-down="index < sources.length - 1"
                     :disabled="saving"
                     @remove="removeSource(source.id)"
-                    @toggle-tab="toggleTab(source.id, $event)"
+                    @set-tabs="setTabs(source.id, $event)"
                     @move-up="moveSourceUp(source.id)"
                     @move-down="moveSourceDown(source.id)"
                 />
