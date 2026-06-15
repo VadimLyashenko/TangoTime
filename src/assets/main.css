@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Sawarabi+Mincho&display=swap');
 @import 'tailwindcss';
 
 :root {
@@ -25,4 +26,19 @@ input,
 select,
 textarea {
     font: inherit;
+}
+
+.japanese-text {
+    font-family: 'Sawarabi Mincho', serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
 }

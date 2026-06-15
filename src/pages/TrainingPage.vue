@@ -344,52 +344,56 @@ function handleKeydown(event) {
                             {{ orderedWords.length }}
                         </p>
 
-                        <div class="mb-8">
-                            <p
-                                class="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-[#9c8d80]"
-                            >
-                                {{
-                                    currentWord.hasReading
-                                        ? 'Kanji'
-                                        : 'Kana only'
-                                }}
-                            </p>
-                            <h2 class="text-7xl font-extrabold text-[#2c241f]">
-                                {{ currentWord.japanese }}
-                            </h2>
-                        </div>
+                        <Transition name="word-card" mode="out-in">
+                            <div :key="currentWord.id" class="mb-8">
+                                <p
+                                    class="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-[#9c8d80]"
+                                >
+                                    {{
+                                        currentWord.hasReading
+                                            ? 'Kanji'
+                                            : 'Kana only'
+                                    }}
+                                </p>
+                                <h2
+                                    class="japanese-text text-7xl font-extrabold text-[#2c241f]"
+                                >
+                                    {{ currentWord.japanese }}
+                                </h2>
+                            </div>
+                        </Transition>
 
-                        <div
-                            class="mb-8 min-h-28 rounded-3xl bg-[#fffaf2] p-6 transition"
-                            :class="
-                                currentSession.answerVisible
-                                    ? 'opacity-100'
-                                    : 'opacity-0'
-                            "
-                        >
-                            <p
-                                v-if="currentWord.reading"
-                                class="mb-3 text-3xl font-extrabold text-[#2c241f]"
-                            >
-                                {{ currentWord.reading }}
-                            </p>
-                            <p class="text-xl font-bold text-[#6f6258]">
-                                {{ currentWord.translation }}
-                            </p>
+                        <div class="mb-8 min-h-28">
+                            <Transition name="answer">
+                                <div
+                                    v-if="currentSession.answerVisible"
+                                    class="min-h-28 rounded-3xl bg-[#fffaf2] p-6"
+                                >
+                                    <p
+                                        v-if="currentWord.reading"
+                                        class="japanese-text mb-3 text-3xl font-extrabold text-[#2c241f]"
+                                    >
+                                        {{ currentWord.reading }}
+                                    </p>
+                                    <p class="text-xl font-bold text-[#6f6258]">
+                                        {{ currentWord.translation }}
+                                    </p>
+                                </div>
+                            </Transition>
                         </div>
 
                         <div class="flex justify-center gap-3">
                             <template v-if="!currentSession.answerVisible">
                                 <button
                                     type="button"
-                                    class="cursor-pointer rounded-2xl bg-[#b7602a] px-6 py-3 font-bold text-[#fffaf2] transition hover:bg-[#9d4f22]"
+                                    class="cursor-pointer rounded-2xl bg-[#b7602a] px-6 py-3 font-bold text-[#fffaf2] transition duration-200 hover:-translate-y-0.5 hover:bg-[#9d4f22] hover:shadow-lg hover:shadow-[#b7602a]/20 active:translate-y-0 active:scale-95"
                                     @click="checkAnswer(true)"
                                 >
                                     Correct
                                 </button>
                                 <button
                                     type="button"
-                                    class="cursor-pointer rounded-2xl bg-[#a33a32] px-6 py-3 font-bold text-white transition hover:bg-[#862e28]"
+                                    class="cursor-pointer rounded-2xl bg-[#a33a32] px-6 py-3 font-bold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-[#862e28] hover:shadow-lg hover:shadow-[#a33a32]/20 active:translate-y-0 active:scale-95"
                                     @click="checkAnswer(false)"
                                 >
                                     Mistake
@@ -399,7 +403,7 @@ function handleKeydown(event) {
                             <button
                                 v-else
                                 type="button"
-                                class="cursor-pointer rounded-2xl bg-[#2c241f] px-6 py-3 font-bold text-[#fffaf2] transition hover:bg-[#4a3d35]"
+                                class="cursor-pointer rounded-2xl bg-[#2c241f] px-6 py-3 font-bold text-[#fffaf2] transition duration-200 hover:-translate-y-0.5 hover:bg-[#4a3d35] hover:shadow-lg hover:shadow-[#2c241f]/20 active:translate-y-0 active:scale-95"
                                 @click="goToNextWord"
                             >
                                 {{
@@ -433,43 +437,55 @@ function handleKeydown(event) {
                             Checked words will appear here.
                         </p>
 
-                        <div
-                            v-for="(entry, index) in currentSession.history"
-                            :key="`${entry.wordId}-${index}`"
-                            class="mb-2 rounded-xl p-3"
-                            :class="
-                                entry.correct ? 'bg-[#edf7ed]' : 'bg-[#fff0ee]'
-                            "
-                        >
-                            <div class="flex items-start justify-between gap-3">
-                                <div>
-                                    <strong
-                                        class="block text-lg text-[#2c241f]"
-                                    >
-                                        {{ entry.japanese }}
-                                    </strong>
+                        <TransitionGroup name="history">
+                            <div
+                                v-for="(entry, index) in currentSession.history"
+                                :key="`${entry.wordId}-${index}`"
+                                class="mb-2 rounded-xl p-3"
+                                :class="
+                                    entry.correct
+                                        ? 'bg-[#edf7ed]'
+                                        : 'bg-[#fff0ee]'
+                                "
+                            >
+                                <div
+                                    class="flex items-start justify-between gap-3"
+                                >
+                                    <div>
+                                        <strong
+                                            class="japanese-text block text-lg text-[#2c241f]"
+                                        >
+                                            {{ entry.japanese }}
+                                        </strong>
+                                        <span
+                                            v-if="entry.reading"
+                                            class="japanese-text text-sm font-semibold text-[#6f6258]"
+                                        >
+                                            {{ entry.reading }}
+                                        </span>
+                                    </div>
                                     <span
-                                        v-if="entry.reading"
-                                        class="text-sm font-semibold text-[#6f6258]"
+                                        class="font-extrabold"
+                                        :class="
+                                            entry.correct
+                                                ? 'text-[#2f6b3c]'
+                                                : 'text-[#a33a32]'
+                                        "
                                     >
-                                        {{ entry.reading }}
+                                        {{
+                                            entry.correct
+                                                ? 'Correct'
+                                                : 'Mistake'
+                                        }}
                                     </span>
                                 </div>
-                                <span
-                                    class="font-extrabold"
-                                    :class="
-                                        entry.correct
-                                            ? 'text-[#2f6b3c]'
-                                            : 'text-[#a33a32]'
-                                    "
+                                <p
+                                    class="mt-1 text-sm font-bold text-[#6f6258]"
                                 >
-                                    {{ entry.correct ? 'Correct' : 'Mistake' }}
-                                </span>
+                                    {{ entry.translation }}
+                                </p>
                             </div>
-                            <p class="mt-1 text-sm font-bold text-[#6f6258]">
-                                {{ entry.translation }}
-                            </p>
-                        </div>
+                        </TransitionGroup>
                     </div>
                 </aside>
             </div>
@@ -480,5 +496,36 @@ function handleKeydown(event) {
 <style module>
 .trainingArea {
     min-height: 520px;
+}
+
+:global(.word-card-enter-active),
+:global(.word-card-leave-active),
+:global(.answer-enter-active),
+:global(.answer-leave-active),
+:global(.history-enter-active) {
+    transition:
+        opacity 220ms ease,
+        transform 220ms ease;
+}
+
+:global(.word-card-enter-from) {
+    opacity: 0;
+    transform: translateX(18px);
+}
+
+:global(.word-card-leave-to) {
+    opacity: 0;
+    transform: translateX(-18px);
+}
+
+:global(.answer-enter-from),
+:global(.answer-leave-to) {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+:global(.history-enter-from) {
+    opacity: 0;
+    transform: translateX(14px);
 }
 </style>
