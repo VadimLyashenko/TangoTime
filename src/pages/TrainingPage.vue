@@ -221,124 +221,129 @@ function handleKeydown(event) {
     <section :class="$style.trainingArea">
         <div
             v-if="loadingTrainingSets"
-            class="rounded-2xl border border-dashed border-[#2c241f]/20 bg-white/50 p-6 text-[#6f6258]"
+            class="border border-dashed border-[#2b3a50] bg-[#182235] p-6 text-[#9eadc1]"
         >
             Loading training sets...
         </div>
 
         <div
             v-else-if="trainingSetsError"
-            class="rounded-2xl border border-[#b3261e]/20 bg-[#fff3f1] p-6 font-bold text-[#b3261e]"
+            class="border border-[#f06a67]/35 bg-[#2a202b] p-6 font-bold text-[#f58a87]"
         >
             {{ trainingSetsError }}
         </div>
 
         <div
             v-else-if="!selectedSets.length"
-            class="rounded-2xl border border-dashed border-[#2c241f]/20 bg-white/50 p-6 text-[#6f6258]"
+            class="border border-dashed border-[#2b3a50] bg-[#182235] p-6 text-[#9eadc1]"
         >
             No training sets selected yet. Open settings and choose tabs first.
         </div>
 
         <div
             v-else-if="!selectedSet"
-            class="rounded-2xl border border-dashed border-[#2c241f]/20 bg-white/50 p-6 text-[#6f6258]"
+            class="border border-dashed border-[#2b3a50] bg-[#182235] p-6 text-[#9eadc1]"
         >
             Choose a training set in the header.
         </div>
 
-        <div
-            v-else
-            class="min-h-130 rounded-3xl bg-[#fffaf2] p-8 shadow-[0_16px_40px_rgb(44_36_31/8%)]"
-        >
-            <div class="mb-6 flex items-center justify-between gap-4">
+        <div v-else class="min-h-130">
+            <div
+                class="mb-5 flex items-end justify-between gap-4 border-b border-[#2b3a50] pb-5"
+            >
                 <div class="min-w-0">
-                    <h1 class="truncate text-2xl font-extrabold text-[#2c241f]">
+                    <h1 class="truncate text-3xl font-extrabold text-[#f3f6fa]">
                         {{ selectedSet.tabTitle }}
                     </h1>
-                    <p class="truncate text-sm font-semibold text-[#6f6258]">
+                    <p
+                        class="mt-1 truncate text-sm font-semibold text-[#9eadc1]"
+                    >
                         {{ selectedSet.sourceTitle }}
                     </p>
                 </div>
 
-                <div
-                    class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-bold text-[#6f6258]"
-                >
+                <div class="shrink-0 text-sm font-bold text-[#9eadc1]">
                     {{ words.length }} words
                 </div>
             </div>
 
             <div
                 v-if="loadingRows"
-                class="grid min-h-114 place-items-center rounded-3xl border border-dashed border-[#2c241f]/15 bg-white/60 p-10 text-[#6f6258]"
+                class="grid min-h-150 place-items-center border border-dashed border-[#2b3a50] bg-[#182235] p-10 text-[#9eadc1]"
             >
                 Loading words...
             </div>
 
             <div
                 v-else-if="rowsError"
-                class="grid min-h-114 place-items-center rounded-3xl border border-[#b3261e]/20 bg-[#fff3f1] p-10 text-center font-bold text-[#b3261e]"
+                class="grid min-h-150 place-items-center border border-[#f06a67]/35 bg-[#2a202b] p-10 text-center font-bold text-[#f58a87]"
             >
                 {{ rowsError }}
             </div>
 
             <div
                 v-else-if="!words.length || !currentSession"
-                class="grid min-h-114 place-items-center rounded-3xl border border-dashed border-[#2c241f]/15 bg-white/60 p-10 text-[#6f6258]"
+                class="grid min-h-150 place-items-center border border-dashed border-[#2b3a50] bg-[#182235] p-10 text-[#9eadc1]"
             >
                 This tab has no words.
             </div>
 
             <div
                 v-else
-                class="grid min-h-114 grid-cols-[minmax(0,1fr)_320px] gap-6"
+                class="grid min-h-150 grid-cols-[minmax(0,1fr)_440px] border-y border-[#2b3a50]"
             >
                 <main
-                    class="grid place-items-center rounded-3xl border border-[#2c241f]/10 bg-white/70 p-10"
+                    class="grid place-items-center border-r border-[#2b3a50] bg-[#141e2f] px-12 py-10"
                 >
                     <div
                         v-if="currentSession.completed"
                         class="w-full max-w-180 text-center"
                     >
                         <p
-                            class="mb-3 text-sm font-extrabold uppercase tracking-[0.12em] text-[#b7602a]"
+                            class="mb-3 text-sm font-extrabold uppercase tracking-[0.12em] text-[#4f8cff]"
                         >
                             Session complete
                         </p>
-                        <h2 class="mb-8 text-5xl font-extrabold text-[#2c241f]">
+                        <h2 class="mb-8 text-6xl font-extrabold text-[#f3f6fa]">
                             {{ result.accuracy }}%
                         </h2>
                         <div class="grid grid-cols-3 gap-3">
-                            <div class="rounded-2xl bg-[#fffaf2] p-4">
-                                <strong class="block text-2xl text-[#2c241f]">{{
+                            <div
+                                class="border border-[#2b3a50] bg-[#182235] p-4"
+                            >
+                                <strong class="block text-2xl text-[#f3f6fa]">{{
                                     result.total
                                 }}</strong>
-                                <span class="text-sm font-bold text-[#6f6258]"
+                                <span class="text-sm font-bold text-[#9eadc1]"
                                     >Total words</span
                                 >
                             </div>
-                            <div class="rounded-2xl bg-[#edf7ed] p-4">
-                                <strong class="block text-2xl text-[#2f6b3c]">{{
+                            <div
+                                class="border border-[#55c98b]/25 bg-[#172b29] p-4"
+                            >
+                                <strong class="block text-2xl text-[#55c98b]">{{
                                     result.correct
                                 }}</strong>
-                                <span class="text-sm font-bold text-[#2f6b3c]"
+                                <span class="text-sm font-bold text-[#55c98b]"
                                     >Correct</span
                                 >
                             </div>
-                            <div class="rounded-2xl bg-[#fff0ee] p-4">
-                                <strong class="block text-2xl text-[#a33a32]">{{
+                            <div
+                                class="border border-[#f06a67]/25 bg-[#2a202b] p-4"
+                            >
+                                <strong class="block text-2xl text-[#f06a67]">{{
                                     result.mistakes
                                 }}</strong>
-                                <span class="text-sm font-bold text-[#a33a32]"
+                                <span class="text-sm font-bold text-[#f06a67]"
                                     >Mistakes</span
                                 >
                             </div>
                         </div>
                     </div>
 
-                    <div v-else class="w-full max-w-180 text-center">
+                    <div v-else class="w-full max-w-240 text-center">
                         <p
-                            class="mb-6 text-sm font-extrabold uppercase tracking-[0.12em] text-[#b7602a]"
+                            class="mb-8 text-sm font-extrabold uppercase tracking-[0.12em] text-[#4f8cff]"
                         >
                             {{ currentSession.currentWordIndex + 1 }} /
                             {{ orderedWords.length }}
@@ -347,7 +352,7 @@ function handleKeydown(event) {
                         <Transition name="word-card" mode="out-in">
                             <div :key="currentWord.id" class="mb-8">
                                 <p
-                                    class="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-[#9c8d80]"
+                                    class="mb-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8291a7]"
                                 >
                                     {{
                                         currentWord.hasReading
@@ -356,7 +361,7 @@ function handleKeydown(event) {
                                     }}
                                 </p>
                                 <h2
-                                    class="japanese-text text-7xl font-extrabold text-[#2c241f]"
+                                    class="japanese-text text-[10rem] leading-none text-[#f3f6fa]"
                                 >
                                     {{ currentWord.japanese }}
                                 </h2>
@@ -367,15 +372,17 @@ function handleKeydown(event) {
                             <Transition name="answer">
                                 <div
                                     v-if="currentSession.answerVisible"
-                                    class="min-h-28 rounded-3xl bg-[#fffaf2] p-6"
+                                    class="min-h-28 border-t border-[#2b3a50] pt-6"
                                 >
                                     <p
                                         v-if="currentWord.reading"
-                                        class="japanese-text mb-3 text-3xl font-extrabold text-[#2c241f]"
+                                        class="japanese-text mb-3 text-4xl text-[#c9d5e5]"
                                     >
                                         {{ currentWord.reading }}
                                     </p>
-                                    <p class="text-xl font-bold text-[#6f6258]">
+                                    <p
+                                        class="text-2xl font-bold text-[#9eadc1]"
+                                    >
                                         {{ currentWord.translation }}
                                     </p>
                                 </div>
@@ -386,14 +393,14 @@ function handleKeydown(event) {
                             <template v-if="!currentSession.answerVisible">
                                 <button
                                     type="button"
-                                    class="cursor-pointer rounded-2xl bg-[#b7602a] px-6 py-3 font-bold text-[#fffaf2] transition duration-200 hover:-translate-y-0.5 hover:bg-[#9d4f22] hover:shadow-lg hover:shadow-[#b7602a]/20 active:translate-y-0 active:scale-95"
+                                    class="cursor-pointer rounded-md bg-[#4f8cff] px-7 py-3 font-bold text-[#0f1726] transition duration-200 hover:-translate-y-0.5 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:translate-y-0 active:scale-95"
                                     @click="checkAnswer(true)"
                                 >
                                     Correct
                                 </button>
                                 <button
                                     type="button"
-                                    class="cursor-pointer rounded-2xl bg-[#a33a32] px-6 py-3 font-bold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-[#862e28] hover:shadow-lg hover:shadow-[#a33a32]/20 active:translate-y-0 active:scale-95"
+                                    class="cursor-pointer rounded-md border border-[#f06a67]/65 bg-transparent px-7 py-3 font-bold text-[#f58a87] transition duration-200 hover:-translate-y-0.5 hover:bg-[#f06a67]/10 hover:shadow-lg hover:shadow-[#f06a67]/10 active:translate-y-0 active:scale-95"
                                     @click="checkAnswer(false)"
                                 >
                                     Mistake
@@ -403,7 +410,7 @@ function handleKeydown(event) {
                             <button
                                 v-else
                                 type="button"
-                                class="cursor-pointer rounded-2xl bg-[#2c241f] px-6 py-3 font-bold text-[#fffaf2] transition duration-200 hover:-translate-y-0.5 hover:bg-[#4a3d35] hover:shadow-lg hover:shadow-[#2c241f]/20 active:translate-y-0 active:scale-95"
+                                class="cursor-pointer rounded-md bg-[#4f8cff] px-7 py-3 font-bold text-[#0f1726] transition duration-200 hover:-translate-y-0.5 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:translate-y-0 active:scale-95"
                                 @click="goToNextWord"
                             >
                                 {{
@@ -415,24 +422,31 @@ function handleKeydown(event) {
                             </button>
                         </div>
 
-                        <p class="mt-5 text-sm font-semibold text-[#9c8d80]">
+                        <p class="mt-5 text-sm font-semibold text-[#8291a7]">
                             Space = correct / next · E = mistake
                         </p>
                     </div>
                 </main>
 
-                <aside
-                    class="overflow-hidden rounded-3xl border border-[#2c241f]/10 bg-white/70"
-                >
-                    <h2
-                        class="border-b border-[#2c241f]/10 px-5 py-4 text-lg font-extrabold text-[#2c241f]"
+                <aside class="overflow-hidden bg-[#182235]">
+                    <div class="border-b border-[#2b3a50] px-5 py-4">
+                        <h2 class="text-base font-extrabold text-[#f3f6fa]">
+                            History
+                        </h2>
+                    </div>
+
+                    <div
+                        class="grid grid-cols-[minmax(90px,0.75fr)_minmax(90px,0.75fr)_minmax(0,1.35fr)] gap-4 border-b border-[#2b3a50] bg-[#141e2f] px-5 py-2.5 text-[0.68rem] font-extrabold uppercase tracking-[0.1em] text-[#6f8098]"
                     >
-                        History
-                    </h2>
-                    <div class="max-h-104 overflow-y-auto p-3">
+                        <span>Japanese</span>
+                        <span>Reading</span>
+                        <span>Translation</span>
+                    </div>
+
+                    <div class="max-h-142 overflow-y-auto">
                         <p
                             v-if="!currentSession.history.length"
-                            class="p-4 text-center text-sm font-semibold text-[#9c8d80]"
+                            class="p-6 text-center text-sm font-semibold text-[#8291a7]"
                         >
                             Checked words will appear here.
                         </p>
@@ -441,46 +455,30 @@ function handleKeydown(event) {
                             <div
                                 v-for="(entry, index) in currentSession.history"
                                 :key="`${entry.wordId}-${index}`"
-                                class="mb-2 rounded-xl p-3"
+                                class="grid grid-cols-[minmax(90px,0.75fr)_minmax(90px,0.75fr)_minmax(0,1.35fr)] items-center gap-4 border-b px-5 py-3 transition-colors"
                                 :class="
                                     entry.correct
-                                        ? 'bg-[#edf7ed]'
-                                        : 'bg-[#fff0ee]'
+                                        ? 'border-[#55c98b]/15 bg-[#55c98b]/[0.055] hover:bg-[#55c98b]/[0.09]'
+                                        : 'border-[#f06a67]/15 bg-[#f06a67]/[0.06] hover:bg-[#f06a67]/[0.1]'
                                 "
                             >
-                                <div
-                                    class="flex items-start justify-between gap-3"
-                                >
-                                    <div>
-                                        <strong
-                                            class="japanese-text block text-lg text-[#2c241f]"
-                                        >
-                                            {{ entry.japanese }}
-                                        </strong>
-                                        <span
-                                            v-if="entry.reading"
-                                            class="japanese-text text-sm font-semibold text-[#6f6258]"
-                                        >
-                                            {{ entry.reading }}
-                                        </span>
-                                    </div>
-                                    <span
-                                        class="font-extrabold"
-                                        :class="
-                                            entry.correct
-                                                ? 'text-[#2f6b3c]'
-                                                : 'text-[#a33a32]'
-                                        "
+                                <div class="min-w-0">
+                                    <strong
+                                        class="japanese-text block truncate text-xl font-normal text-[#f3f6fa]"
                                     >
-                                        {{
-                                            entry.correct
-                                                ? 'Correct'
-                                                : 'Mistake'
-                                        }}
-                                    </span>
+                                        {{ entry.japanese }}
+                                    </strong>
                                 </div>
+
+                                <span
+                                    class="japanese-text min-w-0 truncate text-sm text-[#aebbd0]"
+                                >
+                                    {{ entry.reading || '—' }}
+                                </span>
+
                                 <p
-                                    class="mt-1 text-sm font-bold text-[#6f6258]"
+                                    class="min-w-0 truncate text-sm font-semibold text-[#aebbd0]"
+                                    :title="entry.translation"
                                 >
                                     {{ entry.translation }}
                                 </p>

@@ -9,6 +9,8 @@ const props = defineProps({
     },
 })
 
+const logoUrl = `${import.meta.env.BASE_URL}tangotime-logo.png`
+
 const {
     selectedSets,
     selectedSetKey,
@@ -87,27 +89,32 @@ watch(
 
 <template>
     <header
-        class="grid min-h-20 grid-cols-[180px_minmax(0,1fr)_180px] items-center border-b border-[#2c241f]/10 bg-[#fffaf2] px-8 py-3"
+        class="grid min-h-20 grid-cols-[180px_minmax(0,1fr)_180px] items-center border-b border-[#2b3a50] bg-[#151f30] px-8 py-3"
     >
         <button
             type="button"
-            class="justify-self-start cursor-pointer border-0 bg-transparent text-2xl font-extrabold text-[#2c241f] transition hover:text-[#b7602a]"
+            class="group flex cursor-pointer items-center gap-2.5 justify-self-start border-0 bg-transparent text-2xl font-extrabold text-[#f3f6fa] transition hover:text-[#78a6ff]"
             @click="goHome"
         >
-            TangoTime
+            <img
+                :src="logoUrl"
+                alt=""
+                class="h-10 w-10 object-contain transition duration-200 group-hover:-rotate-3 group-hover:scale-105"
+            />
+            <span>TangoTime</span>
         </button>
 
         <div v-if="route === '#/'" class="mx-8 min-w-0">
             <div
                 v-if="loadingTrainingSets"
-                class="text-center text-sm font-bold text-[#6f6258]"
+                class="text-center text-sm font-bold text-[#9eadc1]"
             >
                 Loading sets...
             </div>
 
             <div
                 v-else-if="!selectedSets.length"
-                class="text-center text-sm font-bold text-[#6f6258]"
+                class="text-center text-sm font-bold text-[#9eadc1]"
             >
                 No sets selected
             </div>
@@ -121,11 +128,11 @@ watch(
                         v-for="group in groupedTrainingSets"
                         :key="group.sourceId"
                         type="button"
-                        class="cursor-pointer border-b-2 bg-transparent px-1 py-1 text-xs font-extrabold uppercase tracking-[0.08em] transition duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                        class="cursor-pointer border-b-2 bg-transparent px-1 py-1 text-xs font-extrabold uppercase tracking-[0.08em] transition duration-200"
                         :class="
                             activeGroup?.sourceId === group.sourceId
-                                ? 'border-[#b7602a] text-[#b7602a]'
-                                : 'border-transparent text-[#8a7b70] hover:text-[#2c241f]'
+                                ? 'border-[#4f8cff] text-[#f3f6fa]'
+                                : 'border-transparent text-[#8291a7] hover:text-[#dbe6f5]'
                         "
                         @click="selectGroup(group)"
                     >
@@ -144,11 +151,11 @@ watch(
                             v-for="set in activeGroup.sets"
                             :key="set.key"
                             type="button"
-                            class="cursor-pointer rounded-md border px-3 py-1.5 text-sm font-bold transition duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
+                            class="cursor-pointer rounded-md border px-3 py-1.5 text-sm font-bold transition duration-200 active:scale-95"
                             :class="
                                 selectedSetKey === set.key
-                                    ? 'border-[#b7602a] bg-[#b7602a] text-[#fffaf2] shadow-sm shadow-[#b7602a]/20'
-                                    : 'border-[#2c241f]/10 bg-white text-[#2c241f] hover:border-[#b7602a]/35 hover:bg-[#fff4df] hover:text-[#b7602a]'
+                                    ? 'border-[#4f8cff] bg-[#4f8cff] text-[#0f1726] shadow-sm shadow-[#4f8cff]/20'
+                                    : 'border-[#2b3a50] bg-[#1b273a] text-[#c9d5e5] hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white'
                             "
                             @click="selectTrainingSet(set.key)"
                         >
@@ -160,7 +167,7 @@ watch(
 
             <p
                 v-if="trainingSetsError"
-                class="mt-1 text-center text-xs font-bold text-[#b3261e]"
+                class="mt-1 text-center text-xs font-bold text-[#f06a67]"
             >
                 {{ trainingSetsError }}
             </p>
@@ -171,14 +178,16 @@ watch(
             aria-label="Open settings"
             title="Settings"
             :class="[
-                'grid h-11 w-11 cursor-pointer place-items-center justify-self-end rounded-full border text-xl transition duration-200 hover:rotate-12 active:scale-90',
+                'col-start-3 grid h-12 w-12 cursor-pointer place-items-center justify-self-end border-0 bg-transparent text-3xl transition duration-200 hover:rotate-12 active:scale-90',
                 route === '#/settings'
-                    ? 'border-[#b7602a] bg-[#b7602a] text-[#fffaf2] shadow-md shadow-[#b7602a]/25'
-                    : 'border-[#2c241f]/15 bg-white text-[#2c241f] hover:border-[#b7602a]/40 hover:bg-[#fff4df] hover:text-[#b7602a]',
+                    ? 'text-[#4f8cff]'
+                    : 'text-[#c9d5e5] hover:text-white',
             ]"
             @click="goSettings"
         >
-            &#9881;
+            <span aria-hidden="true" class="text-3xl leading-none"
+                >&#9881;</span
+            >
         </button>
     </header>
 </template>

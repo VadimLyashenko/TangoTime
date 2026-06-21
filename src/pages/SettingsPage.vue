@@ -8,19 +8,85 @@ const sheetUrl = ref('')
 const errorMessage = ref('')
 const loading = ref(false)
 const loadingSources = ref(true)
+const refreshingSources = ref(false)
 const saving = ref(false)
 
 const sources = ref([])
 
 onMounted(async () => {
     try {
-        sources.value = await loadSources()
+        const savedSources = await loadSources()
+        const hasSavedErrors = savedSources.some((source) => source.error)
+
+        sources.value = savedSources.map((source) => ({
+            ...source,
+            error: '',
+        }))
+
+        if (hasSavedErrors) {
+            await saveSources(sources.value)
+        }
     } catch (error) {
         errorMessage.value = 'Could not load saved Google Sheets sources.'
     } finally {
         loadingSources.value = false
     }
 })
+
+async function refreshSources() {
+    if (refreshingSources.value || saving.value) {
+        return
+    }
+
+    refreshingSources.value = true
+    errorMessage.value = ''
+
+    try {
+        const refreshedSources = await Promise.all(
+            sources.value.map(refreshSource),
+        )
+
+        sources.value = refreshedSources.map((result) => result.source)
+
+        if (refreshedSources.some((result) => result.refreshed)) {
+            await persistSources()
+        }
+    } finally {
+        refreshingSources.value = false
+    }
+}
+
+async function refreshSource(source) {
+    try {
+        const latestSource = await getSpreadsheetInfo(source.url)
+        const selectedTabs = new Map(
+            source.tabs.map((tab) => [tab.gid, tab.selected]),
+        )
+
+        return {
+            refreshed: true,
+            source: {
+                ...source,
+                ...latestSource,
+                tabs: latestSource.tabs.map((tab) => ({
+                    ...tab,
+                    selected: selectedTabs.get(tab.gid) || false,
+                })),
+                error: '',
+            },
+        }
+    } catch (error) {
+        return {
+            refreshed: false,
+            source: {
+                ...source,
+                error:
+                    error.message ||
+                    'Could not refresh this Google Sheets source.',
+            },
+        }
+    }
+}
 
 async function addSource() {
     if (saving.value) {
@@ -164,7 +230,7 @@ async function persistSources() {
     <section :class="$style.card">
         <div class="mb-8">
             <p
-                class="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#b7602a]"
+                class="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#4f8cff]"
             >
                 Settings
             </p>
@@ -173,7 +239,7 @@ async function persistSources() {
                 Google Sheets sources
             </h1>
 
-            <p class="max-w-2xl text-[#6f6258]">
+            <p class="max-w-2xl text-[#9eadc1]">
                 Add Google Sheets links and choose which tabs should appear as
                 training sets.
             </p>
@@ -185,19 +251,19 @@ async function persistSources() {
                 type="url"
                 placeholder="Paste Google Sheets link"
                 :disabled="loading || loadingSources || saving"
-                class="min-h-12 flex-1 rounded-2xl border border-[#2c241f]/15 bg-white px-4 text-[#2c241f] outline-none transition placeholder:text-[#9c8d80] focus:border-[#b7602a] focus:ring-4 focus:ring-[#b7602a]/15 disabled:cursor-not-allowed disabled:opacity-50"
+                class="min-h-12 flex-1 rounded-md border border-[#2b3a50] bg-[#141e2f] px-4 text-[#f3f6fa] outline-none transition placeholder:text-[#6f8098] focus:border-[#4f8cff] focus:ring-4 focus:ring-[#4f8cff]/12 disabled:cursor-not-allowed disabled:opacity-50"
             />
 
             <button
                 type="submit"
                 :disabled="loading || loadingSources || saving"
-                class="min-h-12 cursor-pointer rounded-2xl bg-[#2c241f] px-6 font-bold text-[#fffaf2] transition hover:bg-[#b7602a] disabled:cursor-not-allowed disabled:opacity-50"
+                class="min-h-12 cursor-pointer rounded-md bg-[#4f8cff] px-6 font-bold text-[#0f1726] transition hover:bg-[#6b9fff] disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {{ loading ? 'Loading…' : 'Add sheet' }}
             </button>
         </form>
 
-        <p v-if="errorMessage" class="mt-3 text-sm font-bold text-[#b3261e]">
+        <p v-if="errorMessage" class="mt-3 text-sm font-bold text-[#f06a67]">
             {{ errorMessage }}
         </p>
 
@@ -207,8 +273,25 @@ async function persistSources() {
                     Added sources
                 </h2>
 
+                <button
+                    type="button"
+                    :disabled="loadingSources || refreshingSources || saving"
+                    class="grid h-8 w-8 cursor-pointer place-items-center rounded-md border border-[#2b3a50] bg-[#141e2f] text-[#9eadc1] transition hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Refresh sources"
+                    title="Refresh sources"
+                    @click="refreshSources"
+                >
+                    <span
+                        aria-hidden="true"
+                        class="text-xl leading-none"
+                        :class="refreshingSources ? 'animate-spin' : ''"
+                    >
+                        &#8635;
+                    </span>
+                </button>
+
                 <span
-                    class="rounded-full bg-[#fff4df] px-3 py-1 text-xs font-bold text-[#b7602a] transition-opacity"
+                    class="rounded-sm bg-[#4f8cff]/12 px-3 py-1 text-xs font-bold text-[#78a6ff] transition-opacity"
                     :class="saving ? 'opacity-100' : 'opacity-0'"
                 >
                     Saving…
@@ -217,14 +300,14 @@ async function persistSources() {
 
             <div
                 v-if="loadingSources"
-                class="rounded-2xl border border-dashed border-[#2c241f]/20 bg-white/50 p-6 text-[#6f6258]"
+                class="border border-dashed border-[#2b3a50] bg-[#141e2f] p-6 text-[#9eadc1]"
             >
                 Loading saved sources…
             </div>
 
             <div
                 v-else-if="!sources.length"
-                class="rounded-2xl border border-dashed border-[#2c241f]/20 bg-white/50 p-6 text-[#6f6258]"
+                class="border border-dashed border-[#2b3a50] bg-[#141e2f] p-6 text-[#9eadc1]"
             >
                 No Google Sheets added yet.
             </div>
@@ -254,10 +337,7 @@ async function persistSources() {
 
 <style module>
 .card {
-    border-radius: 24px;
-    background: #fffaf2;
-    padding: 32px;
-    box-shadow: 0 16px 40px rgb(44 36 31 / 8%);
+    padding: 8px 0 40px;
 }
 
 :global(.source-list-move),

@@ -33,10 +33,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-[#f6f1e9] text-[#2c241f]">
+    <div class="min-h-screen bg-[#111827] text-[#f3f6fa]">
         <AppHeader :route="route" />
 
-        <main class="mx-auto w-[min(1200px,calc(100%-48px))] py-10">
+        <main class="mx-auto w-[min(1500px,calc(100%-64px))] py-8">
             <component :is="currentPage" />
         </main>
     </div>

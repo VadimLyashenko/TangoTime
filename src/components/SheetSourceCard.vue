@@ -48,20 +48,21 @@ function getTabsInRange(tabIndex) {
 </script>
 
 <template>
-    <article class="rounded-3xl border border-[#2c241f]/10 bg-white p-5">
+    <article class="rounded-md border border-[#2b3a50] bg-[#182235] p-5">
         <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
+            <div class="flex min-w-0 items-center gap-4">
                 <h2
-                    class="mb-2 text-xl font-extrabold tracking-[-0.03em] text-[#2c241f]"
+                    class="max-w-72 shrink-0 truncate text-xl font-extrabold tracking-[-0.03em] text-[#f3f6fa]"
                 >
                     {{ source.title }}
                 </h2>
 
                 <a
                     :href="source.url"
+                    :title="source.url"
                     target="_blank"
                     rel="noreferrer"
-                    class="block max-w-190 truncate text-sm font-semibold text-[#6f6258] underline decoration-[#b7602a]/30 underline-offset-4 transition hover:text-[#b7602a]"
+                    class="block min-w-0 max-w-[420px] truncate text-sm font-semibold text-[#9eadc1] underline decoration-[#4f8cff]/35 underline-offset-4 transition hover:text-[#78a6ff]"
                 >
                     {{ source.url }}
                 </a>
@@ -71,7 +72,7 @@ function getTabsInRange(tabIndex) {
                 <button
                     type="button"
                     :disabled="disabled || !canMoveUp"
-                    class="grid h-9 w-9 cursor-pointer place-items-center rounded-xl border border-[#2c241f]/10 bg-[#fffaf2] text-sm font-extrabold text-[#2c241f] transition hover:border-[#b7602a]/40 hover:bg-[#fff4df] disabled:cursor-not-allowed disabled:opacity-35"
+                    class="grid h-9 w-9 cursor-pointer place-items-center rounded-md border border-[#2b3a50] bg-[#141e2f] text-sm font-extrabold text-[#c9d5e5] transition hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
                     title="Move up"
                     @click="emit('move-up')"
                 >
@@ -81,7 +82,7 @@ function getTabsInRange(tabIndex) {
                 <button
                     type="button"
                     :disabled="disabled || !canMoveDown"
-                    class="grid h-9 w-9 cursor-pointer place-items-center rounded-xl border border-[#2c241f]/10 bg-[#fffaf2] text-sm font-extrabold text-[#2c241f] transition hover:border-[#b7602a]/40 hover:bg-[#fff4df] disabled:cursor-not-allowed disabled:opacity-35"
+                    class="grid h-9 w-9 cursor-pointer place-items-center rounded-md border border-[#2b3a50] bg-[#141e2f] text-sm font-extrabold text-[#c9d5e5] transition hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
                     title="Move down"
                     @click="emit('move-down')"
                 >
@@ -91,7 +92,7 @@ function getTabsInRange(tabIndex) {
                 <button
                     type="button"
                     :disabled="disabled"
-                    class="cursor-pointer rounded-xl bg-[#ffe7de] px-4 py-2 text-sm font-bold text-[#9d321d] transition hover:bg-[#ffd4c6] disabled:cursor-not-allowed disabled:opacity-35"
+                    class="cursor-pointer rounded-md border border-[#f06a67]/45 bg-transparent px-4 py-2 text-sm font-bold text-[#f58a87] transition hover:bg-[#f06a67]/10 disabled:cursor-not-allowed disabled:opacity-35"
                     @click="emit('remove')"
                 >
                     Remove
@@ -100,11 +101,9 @@ function getTabsInRange(tabIndex) {
         </div>
 
         <div class="mt-5">
-            <p class="mb-3 text-sm font-extrabold text-[#2c241f]">Tabs</p>
-
             <div
                 v-if="!source.tabs.length"
-                class="rounded-2xl border border-dashed border-[#2c241f]/20 bg-[#fffaf2] p-4 text-sm text-[#6f6258]"
+                class="border border-dashed border-[#2b3a50] bg-[#141e2f] p-4 text-sm text-[#9eadc1]"
             >
                 No tabs found.
             </div>
@@ -113,16 +112,18 @@ function getTabsInRange(tabIndex) {
                 <label
                     v-for="(tab, index) in source.tabs"
                     :key="tab.gid"
-                    class="flex h-8 cursor-pointer select-none items-center gap-2 rounded-full border border-[#2c241f]/10 bg-[#fffaf2] px-3 text-xs font-bold text-[#2c241f] transition hover:border-[#b7602a]/40 hover:bg-[#fff4df]"
+                    class="flex h-8 cursor-pointer select-none items-center gap-2 rounded-md border border-[#2b3a50] bg-[#141e2f] px-3 text-xs font-bold text-[#c9d5e5] transition hover:border-[#4f8cff]/60 hover:bg-[#21314a]"
                     :class="
-                        tab.selected ? 'border-[#b7602a]/60 bg-[#fff4df]' : ''
+                        tab.selected
+                            ? 'border-[#4f8cff] bg-[#4f8cff]/12 text-[#f3f6fa]'
+                            : ''
                     "
                 >
                     <input
                         type="checkbox"
                         :checked="tab.selected"
                         :disabled="disabled"
-                        class="h-3.5 w-3.5 shrink-0 cursor-pointer accent-[#b7602a] disabled:cursor-not-allowed"
+                        class="h-3.5 w-3.5 shrink-0 cursor-pointer accent-[#4f8cff] disabled:cursor-not-allowed"
                         @click="selectTabs(tab, index, $event)"
                     />
 
@@ -133,7 +134,7 @@ function getTabsInRange(tabIndex) {
             </div>
         </div>
 
-        <p v-if="source.error" class="mt-4 text-sm font-bold text-[#b3261e]">
+        <p v-if="source.error" class="mt-4 text-sm font-bold text-[#f06a67]">
             {{ source.error }}
         </p>
     </article>

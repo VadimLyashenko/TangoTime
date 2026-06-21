@@ -10,15 +10,16 @@
         BlinkMacSystemFont,
         'Segoe UI',
         sans-serif;
-    color: #2c241f;
-    background: #f6f1e9;
+    color: #f3f6fa;
+    background: #111827;
+    color-scheme: dark;
 }
 
 body {
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
-    background: #f6f1e9;
+    background: #111827;
 }
 
 button,
@@ -30,6 +31,7 @@ textarea {
 
 .japanese-text {
     font-family: 'Sawarabi Mincho', serif;
+    font-weight: 400;
 }
 
 @media (prefers-reduced-motion: reduce) {

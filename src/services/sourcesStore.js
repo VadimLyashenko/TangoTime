@@ -16,10 +16,12 @@ export async function loadSources() {
 }
 
 export async function saveSources(sources) {
+    const persistedSources = sources.map(({ error, ...source }) => source)
+
     await setDoc(
         doc(db, ...SOURCES_DOCUMENT_PATH),
         {
-            sources,
+            sources: persistedSources,
             updatedAt: new Date().toISOString(),
         },
         {
