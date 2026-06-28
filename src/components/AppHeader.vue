@@ -60,6 +60,10 @@ function goSettings() {
     window.location.hash = '#/settings'
 }
 
+function goStatistics() {
+    window.location.hash = '#/statistics'
+}
+
 function selectTrainingSet(setKey) {
     selectedSetKey.value = setKey
 }
@@ -173,22 +177,41 @@ watch(
             </p>
         </div>
 
-        <button
-            type="button"
-            aria-label="Open settings"
-            title="Settings"
-            :class="[
-                'col-start-3 grid h-12 w-12 cursor-pointer place-items-center justify-self-end border-0 bg-transparent text-3xl transition duration-200 hover:rotate-12 active:scale-90',
-                route === '#/settings'
-                    ? 'text-[#4f8cff]'
-                    : 'text-[#c9d5e5] hover:text-white',
-            ]"
-            @click="goSettings"
-        >
-            <span aria-hidden="true" class="text-3xl leading-none"
-                >&#9881;</span
+        <div class="col-start-3 flex justify-self-end">
+            <button
+                type="button"
+                aria-label="Open statistics"
+                title="Statistics"
+                :class="[
+                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent text-3xl transition duration-200 active:scale-90',
+                    route === '#/statistics'
+                        ? 'text-[#4f8cff]'
+                        : 'text-[#c9d5e5] hover:text-white',
+                ]"
+                @click="goStatistics"
             >
-        </button>
+                <span aria-hidden="true" class="text-3xl leading-none"
+                    >&#9638;</span
+                >
+            </button>
+
+            <button
+                type="button"
+                aria-label="Open settings"
+                title="Settings"
+                :class="[
+                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent text-3xl transition duration-200 hover:rotate-12 active:scale-90',
+                    route === '#/settings'
+                        ? 'text-[#4f8cff]'
+                        : 'text-[#c9d5e5] hover:text-white',
+                ]"
+                @click="goSettings"
+            >
+                <span aria-hidden="true" class="text-3xl leading-none"
+                    >&#9881;</span
+                >
+            </button>
+        </div>
     </header>
 </template>
 

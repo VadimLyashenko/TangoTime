@@ -3,12 +3,17 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import TrainingPage from './pages/TrainingPage.vue'
 import SettingsPage from './pages/SettingsPage.vue'
+import StatisticsPage from './pages/StatisticsPage.vue'
 
 const route = ref(window.location.hash || '#/')
 
 const currentPage = computed(() => {
     if (route.value === '#/settings') {
         return SettingsPage
+    }
+
+    if (route.value === '#/statistics') {
+        return StatisticsPage
     }
 
     return TrainingPage
