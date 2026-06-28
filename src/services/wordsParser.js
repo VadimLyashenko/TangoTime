@@ -1,5 +1,11 @@
 export function parseWordsRows(rows) {
-    return rows
+    return parseWordsRowsResult(rows).words
+}
+
+export function parseWordsRowsResult(rows) {
+    const skippedRows = []
+
+    const words = rows
         .map((row, index) => {
             const reading = String(row[0] || '').trim()
             const japanese = String(row[1] || '').trim()
@@ -14,5 +20,18 @@ export function parseWordsRows(rows) {
                 hasReading: Boolean(reading),
             }
         })
-        .filter((word) => word.japanese && word.translation)
+        .filter((word) => {
+            const valid = word.japanese && word.translation
+
+            if (!valid) {
+                skippedRows.push(word.rowNumber)
+            }
+
+            return valid
+        })
+
+    return {
+        words,
+        skippedRows,
+    }
 }

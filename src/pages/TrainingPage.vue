@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getSheetRows } from '../services/googleSheets'
-import { parseWordsRows } from '../services/wordsParser'
+import { parseWordsRowsResult } from '../services/wordsParser'
 import { useTrainingSetsStore } from '../stores/trainingSetsStore'
 
 const STORAGE_KEY = 'tangotime-training-sessions'
@@ -15,7 +15,16 @@ const rowsError = ref('')
 const sessions = ref(loadSessions())
 let activeRequestId = 0
 
-const words = computed(() => parseWordsRows(rows.value))
+const parsedRows = computed(() => parseWordsRowsResult(rows.value))
+const words = computed(() => parsedRows.value.words)
+const skippedRows = computed(() => parsedRows.value.skippedRows)
+const rowsWarning = computed(() => {
+    if (!skippedRows.value.length) {
+        return ''
+    }
+
+    return `Loaded ${words.value.length} words, skipped ${skippedRows.value.length} rows.`
+})
 
 const currentSession = computed(() => {
     const setKey = selectedSet.value?.key
@@ -136,7 +145,7 @@ async function loadRowsForSelectedSet(setKey) {
         }
 
         rows.value = loadedRows
-        ensureSession(setKey, parseWordsRows(loadedRows))
+        ensureSession(setKey, parseWordsRowsResult(loadedRows).words)
     } catch (error) {
         if (requestId === activeRequestId) {
             rowsError.value =
@@ -266,6 +275,13 @@ function handleKeydown(event) {
                     {{ words.length }} words
                 </div>
             </div>
+
+            <p
+                v-if="rowsWarning && !loadingRows && !rowsError"
+                class="mb-5 border border-[#f2c94c]/30 bg-[#2a281d] px-4 py-3 text-sm font-bold text-[#f2c94c]"
+            >
+                {{ rowsWarning }}
+            </p>
 
             <div
                 v-if="loadingRows"
@@ -423,7 +439,7 @@ function handleKeydown(event) {
                         </div>
 
                         <p class="mt-5 text-sm font-semibold text-[#8291a7]">
-                            Space = correct / next · E = mistake
+                            Space = correct / next | E = mistake
                         </p>
                     </div>
                 </main>
@@ -436,7 +452,7 @@ function handleKeydown(event) {
                     </div>
 
                     <div
-                        class="grid grid-cols-[minmax(90px,0.75fr)_minmax(90px,0.75fr)_minmax(0,1.35fr)] gap-4 border-b border-[#2b3a50] bg-[#141e2f] px-5 py-2.5 text-[0.68rem] font-extrabold uppercase tracking-[0.1em] text-[#6f8098]"
+                        class="grid grid-cols-[minmax(90px,0.75fr)_minmax(90px,0.75fr)_minmax(0,1.35fr)] gap-4 border-b border-[#2b3a50] bg-[#141e2f] px-5 py-2.5 text-[0.68rem] font-extrabold uppercase tracking-widest text-[#6f8098]"
                     >
                         <span>Japanese</span>
                         <span>Reading</span>
@@ -458,8 +474,8 @@ function handleKeydown(event) {
                                 class="grid grid-cols-[minmax(90px,0.75fr)_minmax(90px,0.75fr)_minmax(0,1.35fr)] items-center gap-4 border-b px-5 py-3 transition-colors"
                                 :class="
                                     entry.correct
-                                        ? 'border-[#55c98b]/15 bg-[#55c98b]/[0.055] hover:bg-[#55c98b]/[0.09]'
-                                        : 'border-[#f06a67]/15 bg-[#f06a67]/[0.06] hover:bg-[#f06a67]/[0.1]'
+                                        ? 'border-[#55c98b]/15 bg-[#55c98b]/5.5 hover:bg-[#55c98b]/9'
+                                        : 'border-[#f06a67]/15 bg-[#f06a67]/6 hover:bg-[#f06a67]/10'
                                 "
                             >
                                 <div class="min-w-0">
@@ -473,7 +489,7 @@ function handleKeydown(event) {
                                 <span
                                     class="japanese-text min-w-0 truncate text-sm text-[#aebbd0]"
                                 >
-                                    {{ entry.reading || '—' }}
+                                    {{ entry.reading || '-' }}
                                 </span>
 
                                 <p
