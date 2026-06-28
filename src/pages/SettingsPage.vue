@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import SheetSourceCard from '../components/SheetSourceCard.vue'
 import { getSpreadsheetInfo, isGoogleSheetsUrl } from '../services/googleSheets'
 import { loadSources, saveSources } from '../services/sourcesStore'
@@ -10,8 +10,13 @@ const loading = ref(false)
 const loadingSources = ref(true)
 const refreshingSources = ref(false)
 const saving = ref(false)
+const removingSource = ref(false)
 
 const sources = ref([])
+
+const sourceListTransitionName = computed(() =>
+    removingSource.value ? 'source-list-instant' : 'source-list',
+)
 
 onMounted(async () => {
     try {
@@ -140,7 +145,11 @@ async function removeSource(sourceId) {
         return
     }
 
+    removingSource.value = true
     sources.value = sources.value.filter((source) => source.id !== sourceId)
+    await nextTick()
+    removingSource.value = false
+
     await persistSources()
 }
 
@@ -259,7 +268,7 @@ async function persistSources() {
                 :disabled="loading || loadingSources || saving"
                 class="min-h-12 cursor-pointer rounded-md bg-[#4f8cff] px-6 font-bold text-[#0f1726] transition hover:bg-[#6b9fff] disabled:cursor-not-allowed disabled:opacity-50"
             >
-                {{ loading ? 'Loading…' : 'Add sheet' }}
+                {{ loading ? 'Loading...' : 'Add sheet' }}
             </button>
         </form>
 
@@ -294,7 +303,7 @@ async function persistSources() {
                     class="rounded-sm bg-[#4f8cff]/12 px-3 py-1 text-xs font-bold text-[#78a6ff] transition-opacity"
                     :class="saving ? 'opacity-100' : 'opacity-0'"
                 >
-                    Saving…
+                    Saving...
                 </span>
             </div>
 
@@ -302,7 +311,7 @@ async function persistSources() {
                 v-if="loadingSources"
                 class="border border-dashed border-[#2b3a50] bg-[#141e2f] p-6 text-[#9eadc1]"
             >
-                Loading saved sources…
+                Loading saved sources...
             </div>
 
             <div
@@ -314,7 +323,7 @@ async function persistSources() {
 
             <TransitionGroup
                 v-else
-                name="source-list"
+                :name="sourceListTransitionName"
                 tag="div"
                 class="relative grid gap-4"
             >
@@ -341,21 +350,14 @@ async function persistSources() {
 }
 
 :global(.source-list-move),
-:global(.source-list-enter-active),
-:global(.source-list-leave-active) {
+:global(.source-list-enter-active) {
     transition:
         transform 180ms ease,
         opacity 180ms ease;
 }
 
-:global(.source-list-enter-from),
-:global(.source-list-leave-to) {
+:global(.source-list-enter-from) {
     opacity: 0;
     transform: translateY(8px);
-}
-
-:global(.source-list-leave-active) {
-    position: absolute;
-    width: 100%;
 }
 </style>

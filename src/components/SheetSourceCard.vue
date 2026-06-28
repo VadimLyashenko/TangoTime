@@ -62,7 +62,7 @@ function getTabsInRange(tabIndex) {
                     :title="source.url"
                     target="_blank"
                     rel="noreferrer"
-                    class="block min-w-0 max-w-[420px] truncate text-sm font-semibold text-[#9eadc1] underline decoration-[#4f8cff]/35 underline-offset-4 transition hover:text-[#78a6ff]"
+                    class="block min-w-0 max-w-105 truncate text-sm font-semibold text-[#9eadc1] underline decoration-[#4f8cff]/35 underline-offset-4 transition hover:text-[#78a6ff]"
                 >
                     {{ source.url }}
                 </a>
@@ -76,7 +76,7 @@ function getTabsInRange(tabIndex) {
                     title="Move up"
                     @click="emit('move-up')"
                 >
-                    ↑
+                    &uarr;
                 </button>
 
                 <button
@@ -86,7 +86,7 @@ function getTabsInRange(tabIndex) {
                     title="Move down"
                     @click="emit('move-down')"
                 >
-                    ↓
+                    &darr;
                 </button>
 
                 <button
