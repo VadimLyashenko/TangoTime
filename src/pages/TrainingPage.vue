@@ -58,18 +58,6 @@ const currentWord = computed(() => {
 
 const isShowingJapanese = computed(() => displayMode.value === 'japanese')
 
-const currentPromptLabel = computed(() => {
-    if (!currentWord.value) {
-        return ''
-    }
-
-    if (!isShowingJapanese.value) {
-        return 'Russian'
-    }
-
-    return currentWord.value.hasReading ? 'Kanji' : 'Kana only'
-})
-
 const currentPromptText = computed(() => {
     if (!currentWord.value) {
         return ''
@@ -348,25 +336,6 @@ function handleKeydown(event) {
         </div>
 
         <div v-else class="min-h-130">
-            <div
-                class="mb-5 flex items-end justify-between gap-4 border-b border-[#2b3a50] pb-5"
-            >
-                <div class="min-w-0">
-                    <h1 class="truncate text-3xl font-extrabold text-[#f3f6fa]">
-                        {{ selectedSet.tabTitle }}
-                    </h1>
-                    <p
-                        class="mt-1 truncate text-sm font-semibold text-[#9eadc1]"
-                    >
-                        {{ selectedSet.sourceTitle }}
-                    </p>
-                </div>
-
-                <div class="shrink-0 text-sm font-bold text-[#9eadc1]">
-                    {{ words.length }} words
-                </div>
-            </div>
-
             <p
                 v-if="rowsWarning && !loadingRows && !rowsError"
                 class="mb-5 border border-[#f2c94c]/30 bg-[#2a281d] px-4 py-3 text-sm font-bold text-[#f2c94c]"
@@ -449,20 +418,8 @@ function handleKeydown(event) {
                     </div>
 
                     <div v-else class="w-full max-w-240 text-center">
-                        <p
-                            class="mb-8 text-sm font-extrabold uppercase tracking-[0.12em] text-[#4f8cff]"
-                        >
-                            {{ currentSession.currentWordIndex + 1 }} /
-                            {{ orderedWords.length }}
-                        </p>
-
                         <Transition name="word-card" mode="out-in">
                             <div :key="currentWord.id" class="mb-8">
-                                <p
-                                    class="mb-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8291a7]"
-                                >
-                                    {{ currentPromptLabel }}
-                                </p>
                                 <h2
                                     :class="[
                                         'text-[#f3f6fa]',
@@ -552,10 +509,18 @@ function handleKeydown(event) {
                 </main>
 
                 <aside class="overflow-hidden bg-[#182235]">
-                    <div class="border-b border-[#2b3a50] px-5 py-4">
+                    <div
+                        class="flex items-center justify-between gap-3 border-b border-[#2b3a50] px-5 py-4"
+                    >
                         <h2 class="text-base font-extrabold text-[#f3f6fa]">
                             History
                         </h2>
+                        <span
+                            class="shrink-0 text-sm font-extrabold text-[#4f8cff]"
+                        >
+                            {{ currentSession.currentWordIndex + 1 }} /
+                            {{ orderedWords.length }}
+                        </span>
                     </div>
 
                     <div

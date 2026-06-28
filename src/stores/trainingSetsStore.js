@@ -1,10 +1,12 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { loadSources } from '../services/sourcesStore'
+
+const SELECTED_SET_STORAGE_KEY = 'tangotime-selected-set-key'
 
 const sources = ref([])
 const loadingTrainingSets = ref(false)
 const trainingSetsError = ref('')
-const selectedSetKey = ref('')
+const selectedSetKey = ref(loadSelectedSetKey())
 
 const selectedSets = computed(() => {
     return sources.value.flatMap((source) =>
@@ -48,6 +50,29 @@ async function loadTrainingSets() {
         loadingTrainingSets.value = false
     }
 }
+
+function loadSelectedSetKey() {
+    try {
+        return localStorage.getItem(SELECTED_SET_STORAGE_KEY) || ''
+    } catch {
+        return ''
+    }
+}
+
+function saveSelectedSetKey(setKey) {
+    try {
+        if (setKey) {
+            localStorage.setItem(SELECTED_SET_STORAGE_KEY, setKey)
+            return
+        }
+
+        localStorage.removeItem(SELECTED_SET_STORAGE_KEY)
+    } catch {
+        // Ignore storage failures so training still works in restricted modes.
+    }
+}
+
+watch(selectedSetKey, saveSelectedSetKey)
 
 export function useTrainingSetsStore() {
     return {
