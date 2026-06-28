@@ -2,12 +2,14 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getSheetRows } from '../services/googleSheets'
 import { parseWordsRowsResult } from '../services/wordsParser'
+import { useTrainingPreferencesStore } from '../stores/trainingPreferencesStore'
 import { useTrainingSetsStore } from '../stores/trainingSetsStore'
 
 const STORAGE_KEY = 'tangotime-training-sessions'
 
 const { selectedSets, selectedSet, loadingTrainingSets, trainingSetsError } =
     useTrainingSetsStore()
+const { displayMode, isRandomEnabled } = useTrainingPreferencesStore()
 
 const rows = ref([])
 const loadingRows = ref(false)
@@ -31,6 +33,10 @@ const currentSession = computed(() => {
     return setKey ? sessions.value[setKey] || null : null
 })
 
+const currentRandomEnabled = computed(() =>
+    isRandomEnabled(selectedSet.value?.key),
+)
+
 const orderedWords = computed(() => {
     const wordById = new Map(words.value.map((word) => [word.id, word]))
     const ordered = (currentSession.value?.order || [])
@@ -48,6 +54,30 @@ const currentWord = computed(() => {
     return (
         orderedWords.value[currentSession.value?.currentWordIndex || 0] || null
     )
+})
+
+const isShowingJapanese = computed(() => displayMode.value === 'japanese')
+
+const currentPromptLabel = computed(() => {
+    if (!currentWord.value) {
+        return ''
+    }
+
+    if (!isShowingJapanese.value) {
+        return 'Russian'
+    }
+
+    return currentWord.value.hasReading ? 'Kanji' : 'Kana only'
+})
+
+const currentPromptText = computed(() => {
+    if (!currentWord.value) {
+        return ''
+    }
+
+    return isShowingJapanese.value
+        ? currentWord.value.japanese
+        : currentWord.value.translation
 })
 
 const result = computed(() => {
@@ -78,6 +108,10 @@ watch(
     { deep: true },
 )
 
+watch(currentRandomEnabled, () => {
+    restartCurrentSession()
+})
+
 onMounted(() => {
     window.addEventListener('keydown', handleKeydown)
 })
@@ -96,31 +130,88 @@ function loadSessions() {
 
 function ensureSession(setKey, loadedWords) {
     const existing = sessions.value[setKey]
-    const availableIds = new Set(loadedWords.map((word) => word.id))
+
+    if (existing && existing.shuffled !== currentRandomEnabled.value) {
+        sessions.value[setKey] = createSession(
+            loadedWords,
+            currentRandomEnabled.value,
+        )
+        return
+    }
+
+    const loadedIds = loadedWords.map((word) => word.id)
+    const availableIds = new Set(loadedIds)
     const existingOrder = (existing?.order || []).filter((id) =>
         availableIds.has(id),
     )
     const existingIds = new Set(existingOrder)
-    const order = [
-        ...existingOrder,
-        ...loadedWords
-            .map((word) => word.id)
-            .filter((id) => !existingIds.has(id)),
-    ]
+    const missingIds = loadedIds.filter((id) => !existingIds.has(id))
+    const shouldShuffle = existing?.shuffled ?? currentRandomEnabled.value
+    const order = existing
+        ? [
+              ...existingOrder,
+              ...(shouldShuffle ? shuffleIds(missingIds) : missingIds),
+          ]
+        : createWordOrder(loadedIds, shouldShuffle)
 
     sessions.value[setKey] = {
         currentWordIndex: 0,
         answerVisible: false,
         completed: false,
-        shuffled: false,
+        shuffled: currentRandomEnabled.value,
         history: [],
         ...existing,
+        shuffled: shouldShuffle,
         order,
     }
 
     if (sessions.value[setKey].currentWordIndex >= order.length) {
         sessions.value[setKey].currentWordIndex = Math.max(order.length - 1, 0)
     }
+}
+
+function restartCurrentSession() {
+    const setKey = selectedSet.value?.key
+
+    if (!setKey || !words.value.length) {
+        return
+    }
+
+    sessions.value[setKey] = createSession(
+        words.value,
+        currentRandomEnabled.value,
+    )
+}
+
+function createSession(loadedWords, shouldShuffle) {
+    const wordIds = loadedWords.map((word) => word.id)
+
+    return {
+        currentWordIndex: 0,
+        answerVisible: false,
+        completed: false,
+        shuffled: shouldShuffle,
+        history: [],
+        order: createWordOrder(wordIds, shouldShuffle),
+    }
+}
+
+function createWordOrder(wordIds, shouldShuffle) {
+    return shouldShuffle ? shuffleIds(wordIds) : [...wordIds]
+}
+
+function shuffleIds(wordIds) {
+    const shuffledIds = [...wordIds]
+
+    for (let index = shuffledIds.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1))
+        const currentId = shuffledIds[index]
+
+        shuffledIds[index] = shuffledIds[swapIndex]
+        shuffledIds[swapIndex] = currentId
+    }
+
+    return shuffledIds
 }
 
 async function loadRowsForSelectedSet(setKey) {
@@ -370,16 +461,17 @@ function handleKeydown(event) {
                                 <p
                                     class="mb-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8291a7]"
                                 >
-                                    {{
-                                        currentWord.hasReading
-                                            ? 'Kanji'
-                                            : 'Kana only'
-                                    }}
+                                    {{ currentPromptLabel }}
                                 </p>
                                 <h2
-                                    class="japanese-text text-[10rem] leading-none text-[#f3f6fa]"
+                                    :class="[
+                                        'text-[#f3f6fa]',
+                                        isShowingJapanese
+                                            ? 'japanese-text text-[10rem] leading-none'
+                                            : 'mx-auto max-w-180 text-7xl font-extrabold leading-tight',
+                                    ]"
                                 >
-                                    {{ currentWord.japanese }}
+                                    {{ currentPromptText }}
                                 </h2>
                             </div>
                         </Transition>
@@ -390,17 +482,32 @@ function handleKeydown(event) {
                                     v-if="currentSession.answerVisible"
                                     class="min-h-28 border-t border-[#2b3a50] pt-6"
                                 >
-                                    <p
-                                        v-if="currentWord.reading"
-                                        class="japanese-text mb-3 text-4xl text-[#c9d5e5]"
-                                    >
-                                        {{ currentWord.reading }}
-                                    </p>
-                                    <p
-                                        class="text-2xl font-bold text-[#9eadc1]"
-                                    >
-                                        {{ currentWord.translation }}
-                                    </p>
+                                    <template v-if="isShowingJapanese">
+                                        <p
+                                            v-if="currentWord.reading"
+                                            class="japanese-text mb-3 text-4xl text-[#c9d5e5]"
+                                        >
+                                            {{ currentWord.reading }}
+                                        </p>
+                                        <p
+                                            class="text-2xl font-bold text-[#9eadc1]"
+                                        >
+                                            {{ currentWord.translation }}
+                                        </p>
+                                    </template>
+                                    <template v-else>
+                                        <p
+                                            class="japanese-text mb-3 text-5xl text-[#f3f6fa]"
+                                        >
+                                            {{ currentWord.japanese }}
+                                        </p>
+                                        <p
+                                            v-if="currentWord.reading"
+                                            class="japanese-text text-3xl text-[#c9d5e5]"
+                                        >
+                                            {{ currentWord.reading }}
+                                        </p>
+                                    </template>
                                 </div>
                             </Transition>
                         </div>

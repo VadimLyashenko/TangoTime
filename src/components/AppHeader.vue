@@ -1,5 +1,6 @@
 <script setup>
 import { computed, watch } from 'vue'
+import { useTrainingPreferencesStore } from '../stores/trainingPreferencesStore'
 import { useTrainingSetsStore } from '../stores/trainingSetsStore'
 
 const props = defineProps({
@@ -18,6 +19,17 @@ const {
     trainingSetsError,
     loadTrainingSets,
 } = useTrainingSetsStore()
+
+const { displayMode, isRandomEnabled, toggleRandomForSet, toggleDisplayMode } =
+    useTrainingPreferencesStore()
+
+const displayModeLabel = computed(() =>
+    displayMode.value === 'japanese' ? 'Show Japanese' : 'Show Russian',
+)
+
+const selectedSetRandomEnabled = computed(() =>
+    isRandomEnabled(selectedSetKey.value),
+)
 
 const groupedTrainingSets = computed(() => {
     const groups = []
@@ -178,6 +190,49 @@ watch(
         </div>
 
         <div class="col-start-3 flex justify-self-end">
+            <button
+                type="button"
+                aria-label="Toggle random order"
+                :disabled="!selectedSetKey"
+                :title="
+                    selectedSetRandomEnabled ? 'Random on' : 'Random off'
+                "
+                :class="[
+                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent text-3xl transition duration-200 active:scale-90 disabled:cursor-not-allowed disabled:opacity-35',
+                    selectedSetRandomEnabled
+                        ? 'text-[#4f8cff]'
+                        : 'text-[#c9d5e5] hover:text-white',
+                ]"
+                @click="toggleRandomForSet(selectedSetKey)"
+            >
+                <span aria-hidden="true" class="text-3xl leading-none"
+                    >&#8644;</span
+                >
+            </button>
+
+            <button
+                type="button"
+                aria-label="Toggle display mode"
+                :title="displayModeLabel"
+                :class="[
+                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent text-2xl font-extrabold transition duration-200 active:scale-90',
+                    displayMode === 'russian'
+                        ? 'text-[#4f8cff]'
+                        : 'text-[#c9d5e5] hover:text-white',
+                ]"
+                @click="toggleDisplayMode"
+            >
+                <span
+                    v-if="displayMode === 'japanese'"
+                    aria-hidden="true"
+                    class="japanese-text text-[1.65rem] leading-none"
+                    >&#12354;</span
+                >
+                <span v-else aria-hidden="true" class="text-xl leading-none">
+                    Ru
+                </span>
+            </button>
+
             <button
                 type="button"
                 aria-label="Open statistics"
