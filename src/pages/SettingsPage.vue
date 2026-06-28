@@ -349,15 +349,15 @@ async function persistSources() {
     padding: 8px 0 40px;
 }
 
-:global(.source-list-move),
+:global(.source-list-move) {
+    transition: transform 180ms ease;
+}
+
 :global(.source-list-enter-active) {
-    transition:
-        transform 180ms ease,
-        opacity 180ms ease;
+    transition: opacity 180ms ease;
 }
 
 :global(.source-list-enter-from) {
     opacity: 0;
-    transform: translateY(8px);
 }
 </style>

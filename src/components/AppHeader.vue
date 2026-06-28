@@ -273,18 +273,11 @@ watch(
 <style scoped>
 .set-row-enter-active,
 .set-row-leave-active {
-    transition:
-        opacity 180ms ease,
-        transform 180ms ease;
+    transition: opacity 180ms ease;
 }
 
-.set-row-enter-from {
-    opacity: 0;
-    transform: translateX(12px);
-}
-
+.set-row-enter-from,
 .set-row-leave-to {
     opacity: 0;
-    transform: translateX(-12px);
 }
 </style>

@@ -516,14 +516,14 @@ function handleKeydown(event) {
                             <template v-if="!currentSession.answerVisible">
                                 <button
                                     type="button"
-                                    class="cursor-pointer rounded-md bg-[#4f8cff] px-7 py-3 font-bold text-[#0f1726] transition duration-200 hover:-translate-y-0.5 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:translate-y-0 active:scale-95"
+                                    class="cursor-pointer rounded-md bg-[#4f8cff] px-7 py-3 font-bold text-[#0f1726] transition duration-200 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
                                     @click="checkAnswer(true)"
                                 >
                                     Correct
                                 </button>
                                 <button
                                     type="button"
-                                    class="cursor-pointer rounded-md border border-[#f06a67]/65 bg-transparent px-7 py-3 font-bold text-[#f58a87] transition duration-200 hover:-translate-y-0.5 hover:bg-[#f06a67]/10 hover:shadow-lg hover:shadow-[#f06a67]/10 active:translate-y-0 active:scale-95"
+                                    class="cursor-pointer rounded-md border border-[#f06a67]/65 bg-transparent px-7 py-3 font-bold text-[#f58a87] transition duration-200 hover:bg-[#f06a67]/10 hover:shadow-lg hover:shadow-[#f06a67]/10 active:scale-95"
                                     @click="checkAnswer(false)"
                                 >
                                     Mistake
@@ -533,7 +533,7 @@ function handleKeydown(event) {
                             <button
                                 v-else
                                 type="button"
-                                class="cursor-pointer rounded-md bg-[#4f8cff] px-7 py-3 font-bold text-[#0f1726] transition duration-200 hover:-translate-y-0.5 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:translate-y-0 active:scale-95"
+                                class="cursor-pointer rounded-md bg-[#4f8cff] px-7 py-3 font-bold text-[#0f1726] transition duration-200 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
                                 @click="goToNextWord"
                             >
                                 {{
@@ -623,30 +623,17 @@ function handleKeydown(event) {
 :global(.word-card-leave-active),
 :global(.answer-enter-active),
 :global(.answer-leave-active),
-:global(.history-enter-active) {
-    transition:
-        opacity 220ms ease,
-        transform 220ms ease;
+:global(.history-enter-active),
+:global(.history-leave-active) {
+    transition: opacity 220ms ease;
 }
 
-:global(.word-card-enter-from) {
-    opacity: 0;
-    transform: translateX(18px);
-}
-
-:global(.word-card-leave-to) {
-    opacity: 0;
-    transform: translateX(-18px);
-}
-
+:global(.word-card-enter-from),
+:global(.word-card-leave-to),
 :global(.answer-enter-from),
-:global(.answer-leave-to) {
+:global(.answer-leave-to),
+:global(.history-enter-from),
+:global(.history-leave-to) {
     opacity: 0;
-    transform: translateY(8px);
-}
-
-:global(.history-enter-from) {
-    opacity: 0;
-    transform: translateX(14px);
 }
 </style>
