@@ -82,6 +82,34 @@ const result = computed(() => {
     }
 })
 
+const canUndo = computed(() => Boolean(currentSession.value?.history.length))
+
+const canReset = computed(() => {
+    const session = currentSession.value
+
+    if (!session) {
+        return false
+    }
+
+    return (
+        session.currentWordIndex > 0 ||
+        session.answerVisible ||
+        session.completed ||
+        session.history.length > 0
+    )
+})
+
+const currentAnswerEntry = computed(() => {
+    const session = currentSession.value
+    const lastEntry = session?.history[session.history.length - 1]
+
+    if (!session?.answerVisible || !currentWord.value || !lastEntry) {
+        return null
+    }
+
+    return lastEntry.wordId === currentWord.value.id ? lastEntry : null
+})
+
 watch(
     () => selectedSet.value?.key,
     (setKey) => loadRowsForSelectedSet(setKey),
@@ -169,6 +197,24 @@ function restartCurrentSession() {
         words.value,
         currentRandomEnabled.value,
     )
+}
+
+function undoLastAnswer() {
+    const session = currentSession.value
+
+    if (!session?.history.length) {
+        return
+    }
+
+    const previousEntry = session.history.pop()
+    const previousWordIndex = orderedWords.value.findIndex(
+        (word) => word.id === previousEntry.wordId,
+    )
+
+    session.currentWordIndex =
+        previousWordIndex >= 0 ? previousWordIndex : session.currentWordIndex
+    session.answerVisible = false
+    session.completed = false
 }
 
 function createSession(loadedWords, shouldShuffle) {
@@ -275,6 +321,14 @@ function goToNextWord() {
     session.answerVisible = false
 }
 
+function markCurrentAnswer(correct) {
+    if (!currentAnswerEntry.value) {
+        return
+    }
+
+    currentAnswerEntry.value.correct = correct
+}
+
 function handleKeydown(event) {
     if (
         event.target instanceof HTMLInputElement ||
@@ -296,12 +350,18 @@ function handleKeydown(event) {
         return
     }
 
-    if (
-        event.key.toLowerCase() === 'e' &&
-        !currentSession.value?.answerVisible
-    ) {
+    if (event.key.toLowerCase() === 'e') {
+        if (currentSession.value?.answerVisible) {
+            markCurrentAnswer(false)
+            return
+        }
+
         checkAnswer(false)
     }
+}
+
+function handleResetClick() {
+    restartCurrentSession()
 }
 </script>
 
@@ -369,11 +429,11 @@ function handleKeydown(event) {
                 class="grid min-h-150 grid-cols-[minmax(0,1fr)_440px] border-y border-[#2b3a50]"
             >
                 <main
-                    class="grid place-items-center border-r border-[#2b3a50] bg-[#141e2f] px-12 py-10"
+                    class="flex border-r border-[#2b3a50] bg-[#141e2f] px-12 py-8"
                 >
                     <div
                         v-if="currentSession.completed"
-                        class="w-full max-w-180 text-center"
+                        class="m-auto w-full max-w-180 text-center"
                     >
                         <p
                             class="mb-3 text-sm font-extrabold uppercase tracking-[0.12em] text-[#4f8cff]"
@@ -417,94 +477,107 @@ function handleKeydown(event) {
                         </div>
                     </div>
 
-                    <div v-else class="w-full max-w-240 text-center">
-                        <Transition name="word-card" mode="out-in">
-                            <div :key="currentWord.id" class="mb-8">
-                                <h2
-                                    :class="[
-                                        'text-[#f3f6fa]',
-                                        isShowingJapanese
-                                            ? 'japanese-text text-[10rem] leading-none'
-                                            : 'mx-auto max-w-180 text-7xl font-extrabold leading-tight',
-                                    ]"
-                                >
-                                    {{ currentPromptText }}
-                                </h2>
-                            </div>
-                        </Transition>
-
-                        <div class="mb-8 min-h-28">
-                            <Transition name="answer">
-                                <div
-                                    v-if="currentSession.answerVisible"
-                                    class="min-h-28 border-t border-[#2b3a50] pt-6"
-                                >
-                                    <template v-if="isShowingJapanese">
-                                        <p
-                                            v-if="currentWord.reading"
-                                            class="japanese-text mb-3 text-4xl text-[#c9d5e5]"
-                                        >
-                                            {{ currentWord.reading }}
-                                        </p>
-                                        <p
-                                            class="text-2xl font-bold text-[#9eadc1]"
-                                        >
-                                            {{ currentWord.translation }}
-                                        </p>
-                                    </template>
-                                    <template v-else>
-                                        <p
-                                            class="japanese-text mb-3 text-5xl text-[#f3f6fa]"
-                                        >
-                                            {{ currentWord.japanese }}
-                                        </p>
-                                        <p
-                                            v-if="currentWord.reading"
-                                            class="japanese-text text-3xl text-[#c9d5e5]"
-                                        >
-                                            {{ currentWord.reading }}
-                                        </p>
-                                    </template>
+                    <div
+                        v-else
+                        class="mx-auto flex w-full max-w-240 self-stretch text-center"
+                    >
+                        <div class="flex min-h-0 w-full flex-col">
+                            <Transition name="word-card" mode="out-in">
+                                <div :key="currentWord.id">
+                                    <h2
+                                        :class="[
+                                            'text-[#f3f6fa]',
+                                            isShowingJapanese
+                                                ? 'japanese-text text-[12rem] leading-none'
+                                                : 'mx-auto max-w-220 text-8xl font-extrabold leading-tight',
+                                        ]"
+                                    >
+                                        {{ currentPromptText }}
+                                    </h2>
                                 </div>
                             </Transition>
+
+                            <div class="min-h-0 flex-1 pt-8">
+                                <Transition name="answer">
+                                    <div
+                                        v-if="currentSession.answerVisible"
+                                        class="flex h-full w-full flex-col items-center justify-center border-t border-[#2b3a50] py-6"
+                                    >
+                                        <template v-if="isShowingJapanese">
+                                            <p
+                                                v-if="currentWord.reading"
+                                                class="japanese-text mb-4 text-6xl text-[#d8e2f0]"
+                                            >
+                                                {{ currentWord.reading }}
+                                            </p>
+                                            <p
+                                                class="text-5xl font-bold leading-tight text-[#c9d5e5]"
+                                            >
+                                                {{ currentWord.translation }}
+                                            </p>
+                                        </template>
+                                        <template v-else>
+                                            <p
+                                                class="japanese-text mb-3 text-7xl text-[#f3f6fa]"
+                                            >
+                                                {{ currentWord.japanese }}
+                                            </p>
+                                            <p
+                                                v-if="currentWord.reading"
+                                                class="japanese-text text-5xl text-[#c9d5e5]"
+                                            >
+                                                {{ currentWord.reading }}
+                                            </p>
+                                        </template>
+                                    </div>
+                                </Transition>
+                            </div>
+
+                            <div class="flex justify-center gap-3">
+                                <template v-if="!currentSession.answerVisible">
+                                    <button
+                                        type="button"
+                                        class="cursor-pointer rounded-md bg-[#4f8cff] px-5 py-2 text-sm font-bold text-[#0f1726] transition duration-100 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
+                                        @click="checkAnswer(true)"
+                                    >
+                                        Correct
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="cursor-pointer rounded-md border border-[#f06a67]/65 bg-transparent px-5 py-2 text-sm font-bold text-[#f58a87] transition duration-100 hover:bg-[#f06a67]/10 hover:shadow-lg hover:shadow-[#f06a67]/10 active:scale-95"
+                                        @click="checkAnswer(false)"
+                                    >
+                                        Mistake
+                                    </button>
+                                </template>
+
+                                <template v-else>
+                                    <button
+                                        type="button"
+                                        :disabled="
+                                            !currentAnswerEntry ||
+                                            currentAnswerEntry.correct === false
+                                        "
+                                        class="cursor-pointer rounded-md border border-[#f06a67]/65 bg-transparent px-5 py-2 text-sm font-bold text-[#f58a87] transition duration-100 hover:bg-[#f06a67]/10 hover:shadow-lg hover:shadow-[#f06a67]/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:shadow-none"
+                                        @click="markCurrentAnswer(false)"
+                                    >
+                                        Mistake
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="cursor-pointer rounded-md bg-[#4f8cff] px-5 py-2 text-sm font-bold text-[#0f1726] transition duration-100 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
+                                        @click="goToNextWord"
+                                    >
+                                        {{
+                                            currentSession.currentWordIndex ===
+                                            orderedWords.length - 1
+                                                ? 'Show result'
+                                                : 'Next'
+                                        }}
+                                    </button>
+                                </template>
+                            </div>
                         </div>
-
-                        <div class="flex justify-center gap-3">
-                            <template v-if="!currentSession.answerVisible">
-                                <button
-                                    type="button"
-                                    class="cursor-pointer rounded-md bg-[#4f8cff] px-7 py-3 font-bold text-[#0f1726] transition duration-200 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
-                                    @click="checkAnswer(true)"
-                                >
-                                    Correct
-                                </button>
-                                <button
-                                    type="button"
-                                    class="cursor-pointer rounded-md border border-[#f06a67]/65 bg-transparent px-7 py-3 font-bold text-[#f58a87] transition duration-200 hover:bg-[#f06a67]/10 hover:shadow-lg hover:shadow-[#f06a67]/10 active:scale-95"
-                                    @click="checkAnswer(false)"
-                                >
-                                    Mistake
-                                </button>
-                            </template>
-
-                            <button
-                                v-else
-                                type="button"
-                                class="cursor-pointer rounded-md bg-[#4f8cff] px-7 py-3 font-bold text-[#0f1726] transition duration-200 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
-                                @click="goToNextWord"
-                            >
-                                {{
-                                    currentSession.currentWordIndex ===
-                                    orderedWords.length - 1
-                                        ? 'Show result'
-                                        : 'Next'
-                                }}
-                            </button>
-                        </div>
-
-                        <p class="mt-5 text-sm font-semibold text-[#8291a7]">
-                            Space = correct / next | E = mistake
-                        </p>
                     </div>
                 </main>
 
@@ -515,20 +588,38 @@ function handleKeydown(event) {
                         <h2 class="text-base font-extrabold text-[#f3f6fa]">
                             History
                         </h2>
-                        <span
-                            class="shrink-0 text-sm font-extrabold text-[#4f8cff]"
-                        >
-                            {{ currentSession.currentWordIndex + 1 }} /
-                            {{ orderedWords.length }}
-                        </span>
-                    </div>
-
-                    <div
-                        class="grid grid-cols-[minmax(90px,0.75fr)_minmax(90px,0.75fr)_minmax(0,1.35fr)] gap-4 border-b border-[#2b3a50] bg-[#141e2f] px-5 py-2.5 text-[0.68rem] font-extrabold uppercase tracking-widest text-[#6f8098]"
-                    >
-                        <span>Japanese</span>
-                        <span>Reading</span>
-                        <span>Translation</span>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="mr-1 shrink-0 text-sm font-extrabold text-[#4f8cff]"
+                            >
+                                {{ currentSession.currentWordIndex + 1 }} /
+                                {{ orderedWords.length }}
+                            </span>
+                            <button
+                                type="button"
+                                aria-label="Undo last answer"
+                                title="Undo last answer"
+                                :disabled="!canUndo"
+                                class="grid h-8 w-8 cursor-pointer place-items-center border border-[#2b3a50] bg-[#141e2f] text-xl font-bold text-[#c9d5e5] transition hover:border-[#4f8cff]/70 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-[#2b3a50] disabled:hover:text-[#c9d5e5]"
+                                @click="undoLastAnswer"
+                            >
+                                <span aria-hidden="true" class="leading-none"
+                                    >&#8630;</span
+                                >
+                            </button>
+                            <button
+                                type="button"
+                                aria-label="Reset lesson"
+                                title="Reset lesson"
+                                :disabled="!canReset"
+                                class="grid h-8 w-8 cursor-pointer place-items-center border border-[#2b3a50] bg-[#141e2f] text-xl font-bold text-[#c9d5e5] transition hover:border-[#4f8cff]/70 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-[#2b3a50] disabled:hover:text-[#c9d5e5]"
+                                @click="handleResetClick"
+                            >
+                                <span aria-hidden="true" class="leading-none"
+                                    >&#8635;</span
+                                >
+                            </button>
+                        </div>
                     </div>
 
                     <div class="max-h-142 overflow-y-auto">
@@ -543,7 +634,7 @@ function handleKeydown(event) {
                             <div
                                 v-for="(entry, index) in currentSession.history"
                                 :key="`${entry.wordId}-${index}`"
-                                class="grid grid-cols-[minmax(90px,0.75fr)_minmax(90px,0.75fr)_minmax(0,1.35fr)] items-center gap-4 border-b px-5 py-3 transition-colors"
+                                class="grid grid-cols-[minmax(90px,0.75fr)_minmax(90px,0.75fr)_minmax(0,1.35fr)] items-center gap-2 border-b px-5 py-2 transition-colors"
                                 :class="
                                     entry.correct
                                         ? 'border-[#55c98b]/15 bg-[#55c98b]/5.5 hover:bg-[#55c98b]/9'
@@ -559,13 +650,13 @@ function handleKeydown(event) {
                                 </div>
 
                                 <span
-                                    class="japanese-text min-w-0 truncate text-sm text-[#aebbd0]"
+                                    class="japanese-text min-w-0 truncate text-lg text-[#aebbd0]"
                                 >
                                     {{ entry.reading || '-' }}
                                 </span>
 
                                 <p
-                                    class="min-w-0 truncate text-sm font-semibold text-[#aebbd0]"
+                                    class="min-w-0 truncate pl-2 text-sm font-semibold text-[#aebbd0]"
                                     :title="entry.translation"
                                 >
                                     {{ entry.translation }}
@@ -590,7 +681,7 @@ function handleKeydown(event) {
 :global(.answer-leave-active),
 :global(.history-enter-active),
 :global(.history-leave-active) {
-    transition: opacity 220ms ease;
+    transition: opacity 90ms ease;
 }
 
 :global(.word-card-enter-from),

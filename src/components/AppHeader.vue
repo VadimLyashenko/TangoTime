@@ -105,7 +105,7 @@ watch(
 
 <template>
     <header
-        class="grid min-h-20 grid-cols-[180px_minmax(0,1fr)_180px] items-center border-b border-[#2b3a50] bg-[#151f30] px-8 py-3"
+        class="grid min-h-20 grid-cols-[64px_minmax(0,1fr)_180px] items-center border-b border-[#2b3a50] bg-[#151f30] px-6 py-3"
     >
         <button
             type="button"
@@ -115,12 +115,11 @@ watch(
             <img
                 :src="logoUrl"
                 alt=""
-                class="h-10 w-10 object-contain transition duration-200 group-hover:-rotate-3 group-hover:scale-105"
+                class="h-9 w-9 object-contain transition duration-200 group-hover:-rotate-3 group-hover:scale-105"
             />
-            <span>TangoTime</span>
         </button>
 
-        <div v-if="route === '#/'" class="mx-8 min-w-0">
+        <div v-if="route === '#/'" class="mx-3 min-w-0">
             <div
                 v-if="loadingTrainingSets"
                 class="text-center text-sm font-bold text-[#9eadc1]"
