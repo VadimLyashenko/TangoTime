@@ -85,18 +85,7 @@ const result = computed(() => {
 const canUndo = computed(() => Boolean(currentSession.value?.history.length))
 
 const canReset = computed(() => {
-    const session = currentSession.value
-
-    if (!session) {
-        return false
-    }
-
-    return (
-        session.currentWordIndex > 0 ||
-        session.answerVisible ||
-        session.completed ||
-        session.history.length > 0
-    )
+    return hasLessonProgress(currentSession.value)
 })
 
 const currentAnswerEntry = computed(() => {
@@ -120,6 +109,13 @@ watch(
     sessions,
     (value) => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
+        window.dispatchEvent(
+            new CustomEvent('tangotime:training-sessions-updated', {
+                detail: {
+                    sessions: value,
+                },
+            }),
+        )
     },
     { deep: true },
 )
@@ -130,10 +126,18 @@ watch(currentRandomEnabled, () => {
 
 onMounted(() => {
     window.addEventListener('keydown', handleKeydown)
+    window.addEventListener(
+        'tangotime:reset-source-lessons',
+        handleResetSourceLessonsEvent,
+    )
 })
 
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleKeydown)
+    window.removeEventListener(
+        'tangotime:reset-source-lessons',
+        handleResetSourceLessonsEvent,
+    )
 })
 
 function loadSessions() {
@@ -199,6 +203,27 @@ function restartCurrentSession() {
     )
 }
 
+function restartSourceLessons(sourceId) {
+    selectedSets.value
+        .filter((set) => set.sourceId === sourceId)
+        .forEach((set) => {
+            const session = sessions.value[set.key]
+            const wordIds =
+                set.key === selectedSet.value?.key && words.value.length
+                    ? words.value.map((word) => word.id)
+                    : session?.order || []
+
+            if (!wordIds.length) {
+                return
+            }
+
+            sessions.value[set.key] = createSessionFromWordIds(
+                wordIds,
+                isRandomEnabled(set.key),
+            )
+        })
+}
+
 function undoLastAnswer() {
     const session = currentSession.value
 
@@ -220,6 +245,10 @@ function undoLastAnswer() {
 function createSession(loadedWords, shouldShuffle) {
     const wordIds = loadedWords.map((word) => word.id)
 
+    return createSessionFromWordIds(wordIds, shouldShuffle)
+}
+
+function createSessionFromWordIds(wordIds, shouldShuffle) {
     return {
         currentWordIndex: 0,
         answerVisible: false,
@@ -228,6 +257,19 @@ function createSession(loadedWords, shouldShuffle) {
         history: [],
         order: createWordOrder(wordIds, shouldShuffle),
     }
+}
+
+function hasLessonProgress(session) {
+    if (!session) {
+        return false
+    }
+
+    return (
+        session.currentWordIndex > 0 ||
+        session.answerVisible ||
+        session.completed ||
+        session.history.length > 0
+    )
 }
 
 function createWordOrder(wordIds, shouldShuffle) {
@@ -363,6 +405,32 @@ function handleKeydown(event) {
 function handleResetClick() {
     restartCurrentSession()
 }
+
+function handleResetSourceLessonsEvent(event) {
+    const sourceId = event.detail?.sourceId
+
+    if (!sourceId) {
+        return
+    }
+
+    const hasProgress = selectedSets.value.some(
+        (set) =>
+            set.sourceId === sourceId &&
+            hasLessonProgress(sessions.value[set.key]),
+    )
+
+    if (!hasProgress) {
+        return
+    }
+
+    const confirmed = window.confirm(
+        'Reset progress for all selected lessons in this source?',
+    )
+
+    if (confirmed) {
+        restartSourceLessons(sourceId)
+    }
+}
 </script>
 
 <template>
@@ -438,7 +506,7 @@ function handleResetClick() {
                         <p
                             class="mb-3 text-sm font-extrabold uppercase tracking-[0.12em] text-[#4f8cff]"
                         >
-                            Session complete
+                            Lesson complete
                         </p>
                         <h2 class="mb-8 text-6xl font-extrabold text-[#f3f6fa]">
                             {{ result.accuracy }}%
@@ -489,7 +557,7 @@ function handleResetClick() {
                                             'text-[#f3f6fa]',
                                             isShowingJapanese
                                                 ? 'japanese-text text-[12rem] leading-none'
-                                                : 'mx-auto max-w-220 text-8xl font-extrabold leading-tight',
+                                                : 'mx-auto max-w-220 text-7xl font-extrabold leading-tight',
                                         ]"
                                     >
                                         {{ currentPromptText }}
@@ -518,13 +586,13 @@ function handleResetClick() {
                                         </template>
                                         <template v-else>
                                             <p
-                                                class="japanese-text mb-3 text-7xl text-[#f3f6fa]"
+                                                class="japanese-text mb-6 text-8xl text-[#f3f6fa]"
                                             >
                                                 {{ currentWord.japanese }}
                                             </p>
                                             <p
                                                 v-if="currentWord.reading"
-                                                class="japanese-text text-5xl text-[#c9d5e5]"
+                                                class="japanese-text text-6xl text-[#d8e2f0]"
                                             >
                                                 {{ currentWord.reading }}
                                             </p>

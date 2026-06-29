@@ -1,7 +1,9 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useTrainingPreferencesStore } from '../stores/trainingPreferencesStore'
 import { useTrainingSetsStore } from '../stores/trainingSetsStore'
+
+const TRAINING_SESSIONS_STORAGE_KEY = 'tangotime-training-sessions'
 
 const props = defineProps({
     route: {
@@ -22,6 +24,7 @@ const {
 
 const { displayMode, isRandomEnabled, toggleRandomForSet, toggleDisplayMode } =
     useTrainingPreferencesStore()
+const trainingSessions = ref(loadTrainingSessions())
 
 const displayModeLabel = computed(() =>
     displayMode.value === 'japanese' ? 'Show Japanese' : 'Show Russian',
@@ -64,6 +67,44 @@ const activeGroup = computed(() => {
     )
 })
 
+const activeGroupProgress = computed(() => {
+    if (!activeGroup.value) {
+        return null
+    }
+
+    return activeGroup.value.sets.reduce(
+        (progress, set) => {
+            const session = trainingSessions.value[set.key]
+            const history = Array.isArray(session?.history)
+                ? session.history
+                : []
+            const total = Array.isArray(session?.order)
+                ? session.order.length
+                : 0
+
+            progress.total += total
+            progress.done += history.length
+            progress.mistakes += history.filter((entry) => !entry.correct)
+                .length
+
+            return progress
+        },
+        {
+            total: 0,
+            done: 0,
+            mistakes: 0,
+        },
+    )
+})
+
+const shouldShowActiveGroupProgress = computed(() => {
+    return Boolean(
+        activeGroupProgress.value &&
+            (activeGroupProgress.value.total > 0 ||
+                activeGroupProgress.value.done > 0),
+    )
+})
+
 function goHome() {
     window.location.hash = '#/'
 }
@@ -89,6 +130,50 @@ function selectGroup(group) {
         selectTrainingSet(group.sets[0].key)
     }
 }
+
+function resetActiveSourceLessons() {
+    if (!activeGroup.value) {
+        return
+    }
+
+    window.dispatchEvent(
+        new CustomEvent('tangotime:reset-source-lessons', {
+            detail: {
+                sourceId: activeGroup.value.sourceId,
+            },
+        }),
+    )
+}
+
+function loadTrainingSessions() {
+    try {
+        return (
+            JSON.parse(
+                localStorage.getItem(TRAINING_SESSIONS_STORAGE_KEY),
+            ) || {}
+        )
+    } catch {
+        return {}
+    }
+}
+
+function syncTrainingSessions(event) {
+    trainingSessions.value = event.detail?.sessions || loadTrainingSessions()
+}
+
+onMounted(() => {
+    window.addEventListener(
+        'tangotime:training-sessions-updated',
+        syncTrainingSessions,
+    )
+})
+
+onBeforeUnmount(() => {
+    window.removeEventListener(
+        'tangotime:training-sessions-updated',
+        syncTrainingSessions,
+    )
+})
 
 watch(
     () => props.route,
@@ -178,6 +263,28 @@ watch(
                         </button>
                     </nav>
                 </Transition>
+
+                <p
+                    v-if="shouldShowActiveGroupProgress"
+                    class="text-center text-xs font-extrabold uppercase tracking-[0.08em] text-[#8291a7]"
+                >
+                    Done
+                    <span class="text-[#c9d5e5]">
+                        {{ activeGroupProgress.done }} /
+                        {{ activeGroupProgress.total }}
+                    </span>
+                    <span class="mx-1 text-[#2b3a50]">|</span>
+                    Mistakes
+                    <span
+                        :class="
+                            activeGroupProgress.mistakes
+                                ? 'text-[#f58a87]'
+                                : 'text-[#55c98b]'
+                        "
+                    >
+                        {{ activeGroupProgress.mistakes }}
+                    </span>
+                </p>
             </div>
 
             <p
@@ -189,6 +296,19 @@ watch(
         </div>
 
         <div class="col-start-3 flex justify-self-end">
+            <button
+                type="button"
+                aria-label="Reset current source lessons"
+                title="Reset current source lessons"
+                :disabled="route !== '#/' || !activeGroup"
+                class="grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent text-3xl text-[#c9d5e5] transition duration-200 active:scale-90 disabled:cursor-not-allowed disabled:opacity-35 hover:text-white"
+                @click="resetActiveSourceLessons"
+            >
+                <span aria-hidden="true" class="text-3xl leading-none"
+                    >&#8634;</span
+                >
+            </button>
+
             <button
                 type="button"
                 aria-label="Toggle random order"
