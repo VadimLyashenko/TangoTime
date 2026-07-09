@@ -16,9 +16,10 @@ const displayMode = ref(
         ? savedPreferences.displayMode
         : 'japanese',
 )
+const autoPlayAnswerAudio = ref(Boolean(savedPreferences.autoPlayAnswerAudio))
 
 watch(
-    [randomBySet, displayMode],
+    [randomBySet, displayMode, autoPlayAnswerAudio],
     () => {
         if (typeof window === 'undefined') {
             return
@@ -29,6 +30,7 @@ watch(
             JSON.stringify({
                 randomBySet: randomBySet.value,
                 displayMode: displayMode.value,
+                autoPlayAnswerAudio: autoPlayAnswerAudio.value,
             }),
         )
     },
@@ -67,12 +69,18 @@ function toggleDisplayMode() {
         displayMode.value === 'japanese' ? 'russian' : 'japanese'
 }
 
+function toggleAutoPlayAnswerAudio() {
+    autoPlayAnswerAudio.value = !autoPlayAnswerAudio.value
+}
+
 export function useTrainingPreferencesStore() {
     return {
         randomBySet,
         displayMode,
+        autoPlayAnswerAudio,
         isRandomEnabled,
         toggleRandomForSet,
         toggleDisplayMode,
+        toggleAutoPlayAnswerAudio,
     }
 }

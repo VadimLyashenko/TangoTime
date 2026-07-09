@@ -9,7 +9,8 @@ const STORAGE_KEY = 'tangotime-training-sessions'
 
 const { selectedSets, selectedSet, loadingTrainingSets, trainingSetsError } =
     useTrainingSetsStore()
-const { displayMode, isRandomEnabled } = useTrainingPreferencesStore()
+const { displayMode, autoPlayAnswerAudio, isRandomEnabled } =
+    useTrainingPreferencesStore()
 
 const rows = ref([])
 const loadingRows = ref(false)
@@ -397,6 +398,10 @@ function checkAnswer(correct) {
         translation: currentWord.value.translation,
         correct,
     })
+
+    if (autoPlayAnswerAudio.value) {
+        playCurrentAudio()
+    }
 }
 
 function goToNextWord() {
@@ -697,17 +702,17 @@ function handleResetSourceLessonsEvent(event) {
                                 <template v-if="!currentSession.answerVisible">
                                     <button
                                         type="button"
-                                        class="cursor-pointer rounded-md bg-[#4f8cff] px-5 py-2 text-sm font-bold text-[#0f1726] transition duration-100 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
-                                        @click="checkAnswer(true)"
-                                    >
-                                        Correct
-                                    </button>
-                                    <button
-                                        type="button"
                                         class="cursor-pointer rounded-md border border-[#f06a67]/65 bg-transparent px-5 py-2 text-sm font-bold text-[#f58a87] transition duration-100 hover:bg-[#f06a67]/10 hover:shadow-lg hover:shadow-[#f06a67]/10 active:scale-95"
                                         @click="checkAnswer(false)"
                                     >
                                         Mistake
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="cursor-pointer rounded-md bg-[#4f8cff] px-5 py-2 text-sm font-bold text-[#0f1726] transition duration-100 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
+                                        @click="checkAnswer(true)"
+                                    >
+                                        Correct
                                     </button>
                                 </template>
 

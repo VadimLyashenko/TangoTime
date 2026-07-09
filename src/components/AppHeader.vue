@@ -22,8 +22,14 @@ const {
     loadTrainingSets,
 } = useTrainingSetsStore()
 
-const { displayMode, isRandomEnabled, toggleRandomForSet, toggleDisplayMode } =
-    useTrainingPreferencesStore()
+const {
+    displayMode,
+    autoPlayAnswerAudio,
+    isRandomEnabled,
+    toggleRandomForSet,
+    toggleDisplayMode,
+    toggleAutoPlayAnswerAudio,
+} = useTrainingPreferencesStore()
 const trainingSessions = ref(loadTrainingSessions())
 
 const displayModeLabel = computed(() =>
@@ -190,7 +196,7 @@ watch(
 
 <template>
     <header
-        class="grid min-h-20 grid-cols-[64px_minmax(0,1fr)_180px] items-center border-b border-[#2b3a50] bg-[#151f30] px-6 py-3"
+        class="grid min-h-20 grid-cols-[64px_minmax(0,1fr)_auto] items-center border-b border-[#2b3a50] bg-[#151f30] px-6 py-3"
     >
         <button
             type="button"
@@ -350,6 +356,49 @@ watch(
                 <span v-else aria-hidden="true" class="text-xl leading-none">
                     Ru
                 </span>
+            </button>
+
+            <button
+                type="button"
+                aria-label="Toggle answer audio"
+                :title="
+                    autoPlayAnswerAudio
+                        ? 'Answer audio on'
+                        : 'Answer audio off'
+                "
+                :class="[
+                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent transition duration-200 active:scale-90',
+                    autoPlayAnswerAudio
+                        ? 'text-[#4f8cff]'
+                        : 'text-[#c9d5e5] hover:text-white',
+                ]"
+                @click="toggleAutoPlayAnswerAudio"
+            >
+                <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    class="h-7 w-7"
+                    fill="none"
+                >
+                    <path
+                        d="M4 9.5h3.2L12 5.8v12.4l-4.8-3.7H4z"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linejoin="round"
+                    />
+                    <path
+                        d="M16 9a4.5 4.5 0 0 1 0 6"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                    />
+                    <path
+                        d="M18.7 6.5a8 8 0 0 1 0 11"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                    />
+                </svg>
             </button>
 
             <button
