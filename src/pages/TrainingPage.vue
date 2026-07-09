@@ -15,6 +15,7 @@ const rows = ref([])
 const loadingRows = ref(false)
 const rowsError = ref('')
 const sessions = ref(loadSessions())
+let activeAudio = null
 let activeRequestId = 0
 
 const parsedRows = computed(() => parseWordsRowsResult(rows.value))
@@ -66,6 +67,12 @@ const currentPromptText = computed(() => {
     return isShowingJapanese.value
         ? currentWord.value.japanese
         : currentWord.value.translation
+})
+
+const currentAudioUrl = computed(() => {
+    return currentWord.value?.audioPath
+        ? resolveAudioUrl(currentWord.value.audioPath)
+        : ''
 })
 
 const result = computed(() => {
@@ -124,6 +131,11 @@ watch(currentRandomEnabled, () => {
     restartCurrentSession()
 })
 
+watch(
+    () => currentWord.value?.id,
+    () => stopActiveAudio(),
+)
+
 onMounted(() => {
     window.addEventListener('keydown', handleKeydown)
     window.addEventListener(
@@ -138,6 +150,7 @@ onBeforeUnmount(() => {
         'tangotime:reset-source-lessons',
         handleResetSourceLessonsEvent,
     )
+    stopActiveAudio()
 })
 
 function loadSessions() {
@@ -290,6 +303,45 @@ function shuffleIds(wordIds) {
     return shuffledIds
 }
 
+function resolveAudioUrl(audioPath) {
+    const trimmedPath = String(audioPath || '').trim()
+
+    if (!trimmedPath) {
+        return ''
+    }
+
+    if (/^https?:\/\//i.test(trimmedPath)) {
+        return trimmedPath
+    }
+
+    const baseUrl = new URL(import.meta.env.BASE_URL, window.location.origin)
+    const relativePath = trimmedPath.replace(/^\/+/, '')
+
+    return new URL(relativePath, baseUrl).href
+}
+
+function stopActiveAudio() {
+    if (!activeAudio) {
+        return
+    }
+
+    activeAudio.pause()
+    activeAudio.currentTime = 0
+    activeAudio = null
+}
+
+function playCurrentAudio() {
+    if (!currentAudioUrl.value) {
+        return
+    }
+
+    stopActiveAudio()
+    activeAudio = new Audio(currentAudioUrl.value)
+    activeAudio.play().catch(() => {
+        activeAudio = null
+    })
+}
+
 async function loadRowsForSelectedSet(setKey) {
     const requestId = ++activeRequestId
     const set = selectedSets.value.find((item) => item.key === setKey)
@@ -399,6 +451,11 @@ function handleKeydown(event) {
         }
 
         checkAnswer(false)
+    }
+
+    if (event.key.toLowerCase() === 'a') {
+        event.preventDefault()
+        playCurrentAudio()
     }
 }
 
@@ -602,6 +659,41 @@ function handleResetSourceLessonsEvent(event) {
                             </div>
 
                             <div class="flex justify-center gap-3">
+                                <button
+                                    v-if="currentAudioUrl"
+                                    type="button"
+                                    aria-label="Play audio"
+                                    title="Play audio (A)"
+                                    class="grid h-10 w-10 cursor-pointer place-items-center bg-transparent text-[#8fb6ff] transition duration-100 hover:text-white active:scale-95"
+                                    @click="playCurrentAudio"
+                                >
+                                    <svg
+                                        aria-hidden="true"
+                                        viewBox="0 0 24 24"
+                                        class="h-8 w-8"
+                                        fill="none"
+                                    >
+                                        <path
+                                            d="M4 9.5h3.2L12 5.8v12.4l-4.8-3.7H4z"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linejoin="round"
+                                        />
+                                        <path
+                                            d="M16 9a4.5 4.5 0 0 1 0 6"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                        />
+                                        <path
+                                            d="M18.7 6.5a8 8 0 0 1 0 11"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                        />
+                                    </svg>
+                                </button>
+
                                 <template v-if="!currentSession.answerVisible">
                                     <button
                                         type="button"
