@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { saveTrainingStat } from '../services/trainingStatsStore'
 import { useTrainingPreferencesStore } from '../stores/trainingPreferencesStore'
 import { useTrainingSetsStore } from '../stores/trainingSetsStore'
 
@@ -31,6 +32,8 @@ const {
 } = useTrainingPreferencesStore()
 const trainingSessions = ref(loadTrainingSessions())
 const sourceTabsHidden = ref(loadSourceTabsHidden())
+const savingStatistics = ref(false)
+const statisticsSaveStatus = ref('')
 
 const displayModeLabel = computed(() =>
     displayMode.value === 'japanese' ? 'Show Japanese' : 'Show Russian',
@@ -99,6 +102,80 @@ const activeGroupProgress = computed(() => {
     )
 })
 
+const activeGroupStatistics = computed(() => {
+    if (!activeGroup.value) {
+        return null
+    }
+
+    const sets = activeGroup.value.sets.map((set) => {
+        const session = trainingSessions.value[set.key]
+        const history = Array.isArray(session?.history)
+            ? session.history
+            : []
+        const total = Array.isArray(session?.order) ? session.order.length : 0
+        const mistakes = history.filter((entry) => !entry.correct)
+
+        return {
+            key: set.key,
+            tabTitle: set.tabTitle,
+            total,
+            done: history.length,
+            correct: history.length - mistakes.length,
+            mistakes: mistakes.length,
+            mistakeWords: mistakes.map((entry) => ({
+                setKey: set.key,
+                tabTitle: set.tabTitle,
+                wordId: entry.wordId || '',
+                reading: entry.reading || '',
+                japanese: entry.japanese || '',
+                translation: entry.translation || '',
+                audioPath: entry.audioPath || '',
+                answeredAt: entry.answeredAt || null,
+            })),
+        }
+    })
+
+    const totals = sets.reduce(
+        (progress, set) => {
+            progress.total += set.total
+            progress.done += set.done
+            progress.correct += set.correct
+            progress.mistakes += set.mistakes
+
+            return progress
+        },
+        {
+            total: 0,
+            done: 0,
+            correct: 0,
+            mistakes: 0,
+        },
+    )
+
+    return {
+        sourceId: activeGroup.value.sourceId,
+        sourceTitle: activeGroup.value.sourceTitle,
+        timezone: 'Asia/Tokyo',
+        localDate: new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Tokyo',
+        }).format(new Date()),
+        totals: {
+            ...totals,
+            accuracy: totals.done
+                ? Math.round((totals.correct / totals.done) * 100)
+                : 0,
+        },
+        sets,
+        mistakeWords: sets.flatMap((set) => set.mistakeWords),
+    }
+})
+
+const canSaveActiveGroupStatistics = computed(() => {
+    return Boolean(
+        activeGroupStatistics.value?.totals.done && !savingStatistics.value,
+    )
+})
+
 const shouldShowActiveGroupProgress = computed(() => {
     return Boolean(
         activeGroupProgress.value &&
@@ -149,6 +226,25 @@ function resetActiveSourceLessons() {
             },
         }),
     )
+}
+
+async function saveActiveGroupStatistics() {
+    if (!canSaveActiveGroupStatistics.value || !activeGroupStatistics.value) {
+        return
+    }
+
+    savingStatistics.value = true
+    statisticsSaveStatus.value = ''
+
+    try {
+        await saveTrainingStat(activeGroupStatistics.value)
+        statisticsSaveStatus.value = 'saved'
+        window.dispatchEvent(new CustomEvent('tangotime:statistics-updated'))
+    } catch {
+        statisticsSaveStatus.value = 'error'
+    } finally {
+        savingStatistics.value = false
+    }
 }
 
 function toggleSourceTabs() {
@@ -368,6 +464,72 @@ watch(sourceTabsHidden, (isHidden) => {
                             >&#8634;</span
                         >
                     </button>
+
+                    <button
+                        type="button"
+                        aria-label="Save source statistics"
+                        :title="
+                            statisticsSaveStatus === 'saved'
+                                ? 'Statistics saved'
+                                : statisticsSaveStatus === 'error'
+                                  ? 'Could not save statistics'
+                                  : 'Save source statistics'
+                        "
+                        :disabled="!canSaveActiveGroupStatistics"
+                        :class="[
+                            'grid h-6 w-6 cursor-pointer place-items-center rounded border bg-[#1b273a] text-sm transition duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35',
+                            statisticsSaveStatus === 'saved'
+                                ? 'border-[#55c98b]/70 text-[#55c98b]'
+                                : statisticsSaveStatus === 'error'
+                                  ? 'border-[#f06a67]/70 text-[#f58a87]'
+                                  : 'border-[#2b3a50] text-[#c9d5e5] hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white',
+                        ]"
+                        @click="saveActiveGroupStatistics"
+                    >
+                        <span
+                            v-if="savingStatistics"
+                            aria-hidden="true"
+                            class="text-[0.65rem] leading-none"
+                        >
+                            ...
+                        </span>
+                        <span
+                            v-else-if="statisticsSaveStatus === 'error'"
+                            aria-hidden="true"
+                            class="text-sm font-extrabold leading-none"
+                        >
+                            !
+                        </span>
+                        <svg
+                            v-else-if="statisticsSaveStatus === 'saved'"
+                            aria-hidden="true"
+                            class="h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                        >
+                            <path
+                                d="M5 12.5l4.5 4.5L19 7"
+                                stroke="currentColor"
+                                stroke-width="2.6"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                        <svg
+                            v-else
+                            aria-hidden="true"
+                            class="h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                        >
+                            <path
+                                d="M12 5v14M5 12h14"
+                                stroke="currentColor"
+                                stroke-width="2.5"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -381,6 +543,7 @@ watch(sourceTabsHidden, (isHidden) => {
 
         <div class="col-start-3 flex justify-self-end">
             <button
+                v-if="route === '#/'"
                 type="button"
                 aria-label="Toggle display mode"
                 :title="displayModeLabel"
@@ -404,6 +567,7 @@ watch(sourceTabsHidden, (isHidden) => {
             </button>
 
             <button
+                v-if="route === '#/'"
                 type="button"
                 aria-label="Toggle answer audio"
                 :title="

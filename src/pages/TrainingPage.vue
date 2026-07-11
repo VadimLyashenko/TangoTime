@@ -231,9 +231,34 @@ function ensureSession(setKey, loadedWords) {
         order,
     }
 
+    backfillHistoryAudio(setKey, loadedWords)
+
     if (sessions.value[setKey].currentWordIndex >= order.length) {
         sessions.value[setKey].currentWordIndex = Math.max(order.length - 1, 0)
     }
+}
+
+function backfillHistoryAudio(setKey, loadedWords) {
+    const history = sessions.value[setKey]?.history
+
+    if (!Array.isArray(history) || !history.length) {
+        return
+    }
+
+    const wordById = new Map(loadedWords.map((word) => [word.id, word]))
+
+    history.forEach((entry) => {
+        const word = wordById.get(entry.wordId)
+
+        if (!word) {
+            return
+        }
+
+        entry.audioPath = entry.audioPath || word.audioPath || ''
+        entry.reading = entry.reading || word.reading || ''
+        entry.japanese = entry.japanese || word.japanese || ''
+        entry.translation = entry.translation || word.translation || ''
+    })
 }
 
 function restartCurrentSession() {
@@ -492,6 +517,7 @@ function checkAnswer(correct) {
         japanese: currentWord.value.japanese,
         translation: currentWord.value.translation,
         audioPath: currentWord.value.audioPath,
+        answeredAt: new Date().toISOString(),
         correct,
     })
 
