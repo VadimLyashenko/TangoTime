@@ -196,7 +196,7 @@ watch(
 
 <template>
     <header
-        class="grid min-h-20 grid-cols-[64px_minmax(0,1fr)_auto] items-center border-b border-[#2b3a50] bg-[#151f30] px-6 py-3"
+        class="grid min-h-20 grid-cols-[32px_minmax(0,1fr)_auto] items-center border-b border-[#2b3a50] bg-[#151f30] px-3 py-3"
     >
         <button
             type="button"
@@ -210,7 +210,7 @@ watch(
             />
         </button>
 
-        <div v-if="route === '#/'" class="mx-3 min-w-0">
+        <div v-if="route === '#/'" class="mx-1 min-w-0">
             <div
                 v-if="loadingTrainingSets"
                 class="text-center text-sm font-bold text-[#9eadc1]"

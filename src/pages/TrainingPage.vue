@@ -336,11 +336,33 @@ function playCurrentAudio() {
         return
     }
 
+    playAudioUrl(currentAudioUrl.value)
+}
+
+function playAudioUrl(audioUrl) {
     stopActiveAudio()
-    activeAudio = new Audio(currentAudioUrl.value)
+    activeAudio = new Audio(audioUrl)
     activeAudio.play().catch(() => {
         activeAudio = null
     })
+}
+
+function getHistoryAudioUrl(entry) {
+    const audioPath =
+        entry.audioPath ||
+        orderedWords.value.find((word) => word.id === entry.wordId)?.audioPath
+
+    return audioPath ? resolveAudioUrl(audioPath) : ''
+}
+
+function playHistoryAudio(entry) {
+    const audioUrl = getHistoryAudioUrl(entry)
+
+    if (!audioUrl) {
+        return
+    }
+
+    playAudioUrl(audioUrl)
 }
 
 async function loadRowsForSelectedSet(setKey) {
@@ -396,6 +418,7 @@ function checkAnswer(correct) {
         reading: currentWord.value.reading,
         japanese: currentWord.value.japanese,
         translation: currentWord.value.translation,
+        audioPath: currentWord.value.audioPath,
         correct,
     })
 
@@ -556,10 +579,10 @@ function handleResetSourceLessonsEvent(event) {
 
             <div
                 v-else
-                class="grid min-h-150 grid-cols-[minmax(0,1fr)_440px] border-y border-[#2b3a50]"
+                class="grid min-h-150 grid-cols-[minmax(0,1fr)_520px] border-y border-[#2b3a50]"
             >
                 <main
-                    class="flex border-r border-[#2b3a50] bg-[#141e2f] px-12 py-8"
+                    class="flex border-r border-[#2b3a50] bg-[#141e2f] px-8 py-4"
                 >
                     <div
                         v-if="currentSession.completed"
@@ -799,16 +822,47 @@ function handleResetSourceLessonsEvent(event) {
                             <div
                                 v-for="(entry, index) in currentSession.history"
                                 :key="`${entry.wordId}-${index}`"
-                                class="grid grid-cols-[minmax(90px,0.75fr)_minmax(90px,0.75fr)_minmax(0,1.35fr)] items-center gap-2 border-b px-5 py-2 transition-colors"
+                                class="grid grid-cols-[24px_minmax(70px,0.55fr)_minmax(110px,0.95fr)_minmax(0,1.35fr)] items-center gap-1.5 border-b px-4 py-2 transition-colors"
                                 :class="
                                     entry.correct
                                         ? 'border-[#55c98b]/15 bg-[#55c98b]/5.5 hover:bg-[#55c98b]/9'
                                         : 'border-[#f06a67]/15 bg-[#f06a67]/6 hover:bg-[#f06a67]/10'
                                 "
                             >
+                                <button
+                                    v-if="getHistoryAudioUrl(entry)"
+                                    type="button"
+                                    aria-label="Play history audio"
+                                    title="Play audio"
+                                    class="grid h-6 w-6 cursor-pointer place-items-center bg-transparent text-[#8fb6ff] transition duration-100 hover:text-white active:scale-95"
+                                    @click="playHistoryAudio(entry)"
+                                >
+                                    <svg
+                                        aria-hidden="true"
+                                        viewBox="0 0 24 24"
+                                        class="h-5 w-5"
+                                        fill="none"
+                                    >
+                                        <path
+                                            d="M5 9.5h3L12 6v12l-4-3.5H5z"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linejoin="round"
+                                        />
+                                        <path
+                                            d="M16 9.5a4 4 0 0 1 0 5"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                        />
+                                    </svg>
+                                </button>
+                                <span v-else aria-hidden="true"></span>
+
                                 <div class="min-w-0">
                                     <strong
                                         class="japanese-text block truncate text-xl font-normal text-[#f3f6fa]"
+                                        :title="entry.japanese"
                                     >
                                         {{ entry.japanese }}
                                     </strong>
@@ -816,13 +870,14 @@ function handleResetSourceLessonsEvent(event) {
 
                                 <span
                                     class="japanese-text min-w-0 truncate text-lg text-[#aebbd0]"
+                                    :title="entry.reading || '-'"
                                 >
                                     {{ entry.reading || '-' }}
                                 </span>
 
                                 <p
                                     class="min-w-0 truncate pl-2 text-sm font-semibold text-[#aebbd0]"
-                                    :title="entry.translation"
+                                    :title="entry.translation || '-'"
                                 >
                                     {{ entry.translation }}
                                 </p>
