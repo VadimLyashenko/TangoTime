@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getSheetRows } from '../services/googleSheets'
 import { parseWordsRowsResult } from '../services/wordsParser'
 import { useTrainingPreferencesStore } from '../stores/trainingPreferencesStore'
@@ -9,13 +9,16 @@ const STORAGE_KEY = 'tangotime-training-sessions'
 
 const { selectedSets, selectedSet, loadingTrainingSets, trainingSetsError } =
     useTrainingSetsStore()
-const { displayMode, autoPlayAnswerAudio, isRandomEnabled } =
+const { displayMode, autoPlayAnswerAudio, isRandomEnabled, toggleRandomForSet } =
     useTrainingPreferencesStore()
 
 const rows = ref([])
 const loadingRows = ref(false)
 const rowsError = ref('')
 const sessions = ref(loadSessions())
+const historyScrollElement = ref(null)
+const activeMistakeHistoryIndex = ref(null)
+const currentMistakeCycleIndex = ref(-1)
 let activeAudio = null
 let activeRequestId = 0
 
@@ -90,6 +93,21 @@ const result = computed(() => {
     }
 })
 
+const mistakeHistoryIndexes = computed(() => {
+    return (currentSession.value?.history || []).reduce(
+        (indexes, entry, index) => {
+            if (!entry.correct) {
+                indexes.push(index)
+            }
+
+            return indexes
+        },
+        [],
+    )
+})
+
+const historyMistakesCount = computed(() => mistakeHistoryIndexes.value.length)
+
 const canUndo = computed(() => Boolean(currentSession.value?.history.length))
 
 const canReset = computed(() => {
@@ -109,7 +127,10 @@ const currentAnswerEntry = computed(() => {
 
 watch(
     () => selectedSet.value?.key,
-    (setKey) => loadRowsForSelectedSet(setKey),
+    (setKey) => {
+        resetMistakeNavigation()
+        loadRowsForSelectedSet(setKey)
+    },
     { immediate: true },
 )
 
@@ -136,6 +157,17 @@ watch(
     () => currentWord.value?.id,
     () => stopActiveAudio(),
 )
+
+watch(historyMistakesCount, (mistakesCount) => {
+    if (!mistakesCount) {
+        resetMistakeNavigation()
+        return
+    }
+
+    if (currentMistakeCycleIndex.value >= mistakesCount) {
+        currentMistakeCycleIndex.value = mistakesCount - 1
+    }
+})
 
 onMounted(() => {
     window.addEventListener('keydown', handleKeydown)
@@ -211,6 +243,7 @@ function restartCurrentSession() {
         return
     }
 
+    resetMistakeNavigation()
     sessions.value[setKey] = createSession(
         words.value,
         currentRandomEnabled.value,
@@ -218,6 +251,8 @@ function restartCurrentSession() {
 }
 
 function restartSourceLessons(sourceId) {
+    resetMistakeNavigation()
+
     selectedSets.value
         .filter((set) => set.sourceId === sourceId)
         .forEach((set) => {
@@ -254,6 +289,7 @@ function undoLastAnswer() {
         previousWordIndex >= 0 ? previousWordIndex : session.currentWordIndex
     session.answerVisible = false
     session.completed = false
+    resetMistakeNavigation()
 }
 
 function createSession(loadedWords, shouldShuffle) {
@@ -363,6 +399,43 @@ function playHistoryAudio(entry) {
     }
 
     playAudioUrl(audioUrl)
+}
+
+function resetMistakeNavigation() {
+    activeMistakeHistoryIndex.value = null
+    currentMistakeCycleIndex.value = -1
+}
+
+async function scrollToNextMistake() {
+    const mistakeIndexes = mistakeHistoryIndexes.value
+
+    if (!mistakeIndexes.length) {
+        return
+    }
+
+    currentMistakeCycleIndex.value =
+        (currentMistakeCycleIndex.value + 1) % mistakeIndexes.length
+    activeMistakeHistoryIndex.value =
+        mistakeIndexes[currentMistakeCycleIndex.value]
+
+    await nextTick()
+
+    const container = historyScrollElement.value
+    const target = container?.querySelector(
+        `[data-history-index="${activeMistakeHistoryIndex.value}"]`,
+    )
+
+    if (!container || !target) {
+        return
+    }
+
+    const targetOffset =
+        target.offsetTop - container.clientHeight / 2 + target.clientHeight / 2
+
+    container.scrollTo({
+        top: Math.max(targetOffset, 0),
+        behavior: 'smooth',
+    })
 }
 
 async function loadRowsForSelectedSet(setKey) {
@@ -773,16 +846,55 @@ function handleResetSourceLessonsEvent(event) {
                     <div
                         class="flex items-center justify-between gap-3 border-b border-[#2b3a50] px-5 py-4"
                     >
-                        <h2 class="text-base font-extrabold text-[#f3f6fa]">
-                            History
-                        </h2>
-                        <div class="flex items-center gap-2">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <h2
+                                class="text-base font-extrabold text-[#f3f6fa]"
+                            >
+                                History
+                            </h2>
                             <span
-                                class="mr-1 shrink-0 text-sm font-extrabold text-[#4f8cff]"
+                                class="shrink-0 text-sm font-extrabold text-[#4f8cff]"
                             >
                                 {{ currentSession.currentWordIndex + 1 }} /
                                 {{ orderedWords.length }}
                             </span>
+                            <button
+                                type="button"
+                                aria-label="Go to next mistake"
+                                title="Go to next mistake"
+                                :disabled="!historyMistakesCount"
+                                class="inline-flex shrink-0 cursor-pointer items-baseline border-0 bg-transparent p-0 text-[#f06a67] transition hover:text-[#ff8a86] active:scale-95 disabled:cursor-default disabled:text-[#5f3b46] disabled:opacity-60"
+                                @click="scrollToNextMistake"
+                            >
+                                <span
+                                    class="text-sm font-extrabold leading-none"
+                                    style="font-weight: 800"
+                                >
+                                    {{ historyMistakesCount }}
+                                </span>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button
+                                type="button"
+                                aria-label="Toggle random order"
+                                :title="
+                                    currentRandomEnabled
+                                        ? 'Random on'
+                                        : 'Random off'
+                                "
+                                :class="[
+                                    'grid h-8 w-8 cursor-pointer place-items-center border border-[#2b3a50] bg-[#141e2f] text-xl font-bold transition hover:border-[#4f8cff]/70 hover:text-white active:scale-95',
+                                    currentRandomEnabled
+                                        ? 'text-[#4f8cff]'
+                                        : 'text-[#c9d5e5]',
+                                ]"
+                                @click="toggleRandomForSet(selectedSet.key)"
+                            >
+                                <span aria-hidden="true" class="leading-none"
+                                    >&#8644;</span
+                                >
+                            </button>
                             <button
                                 type="button"
                                 aria-label="Undo last answer"
@@ -810,7 +922,10 @@ function handleResetSourceLessonsEvent(event) {
                         </div>
                     </div>
 
-                    <div class="max-h-142 overflow-y-auto">
+                    <div
+                        ref="historyScrollElement"
+                        class="max-h-142 overflow-y-auto"
+                    >
                         <p
                             v-if="!currentSession.history.length"
                             class="p-6 text-center text-sm font-semibold text-[#8291a7]"
@@ -822,12 +937,16 @@ function handleResetSourceLessonsEvent(event) {
                             <div
                                 v-for="(entry, index) in currentSession.history"
                                 :key="`${entry.wordId}-${index}`"
+                                :data-history-index="index"
                                 class="grid grid-cols-[24px_minmax(70px,0.55fr)_minmax(110px,0.95fr)_minmax(0,1.35fr)] items-center gap-1.5 border-b px-4 py-2 transition-colors"
-                                :class="
+                                :class="[
                                     entry.correct
                                         ? 'border-[#55c98b]/15 bg-[#55c98b]/5.5 hover:bg-[#55c98b]/9'
-                                        : 'border-[#f06a67]/15 bg-[#f06a67]/6 hover:bg-[#f06a67]/10'
-                                "
+                                        : 'border-[#f06a67]/15 bg-[#f06a67]/6 hover:bg-[#f06a67]/10',
+                                    activeMistakeHistoryIndex === index
+                                        ? 'shadow-[inset_3px_0_0_#f06a67]'
+                                        : '',
+                                ]"
                             >
                                 <button
                                     v-if="getHistoryAudioUrl(entry)"

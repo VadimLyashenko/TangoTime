@@ -4,6 +4,7 @@ import { useTrainingPreferencesStore } from '../stores/trainingPreferencesStore'
 import { useTrainingSetsStore } from '../stores/trainingSetsStore'
 
 const TRAINING_SESSIONS_STORAGE_KEY = 'tangotime-training-sessions'
+const SOURCE_TABS_HIDDEN_STORAGE_KEY = 'tangotime-source-tabs-hidden'
 
 const props = defineProps({
     route: {
@@ -25,19 +26,14 @@ const {
 const {
     displayMode,
     autoPlayAnswerAudio,
-    isRandomEnabled,
-    toggleRandomForSet,
     toggleDisplayMode,
     toggleAutoPlayAnswerAudio,
 } = useTrainingPreferencesStore()
 const trainingSessions = ref(loadTrainingSessions())
+const sourceTabsHidden = ref(loadSourceTabsHidden())
 
 const displayModeLabel = computed(() =>
     displayMode.value === 'japanese' ? 'Show Japanese' : 'Show Russian',
-)
-
-const selectedSetRandomEnabled = computed(() =>
-    isRandomEnabled(selectedSetKey.value),
 )
 
 const groupedTrainingSets = computed(() => {
@@ -111,6 +107,10 @@ const shouldShowActiveGroupProgress = computed(() => {
     )
 })
 
+const headerIsCompact = computed(
+    () => props.route === '#/' && sourceTabsHidden.value,
+)
+
 function goHome() {
     window.location.hash = '#/'
 }
@@ -149,6 +149,14 @@ function resetActiveSourceLessons() {
             },
         }),
     )
+}
+
+function toggleSourceTabs() {
+    sourceTabsHidden.value = !sourceTabsHidden.value
+}
+
+function loadSourceTabsHidden() {
+    return localStorage.getItem(SOURCE_TABS_HIDDEN_STORAGE_KEY) === 'true'
 }
 
 function loadTrainingSessions() {
@@ -192,11 +200,18 @@ watch(
         immediate: true,
     },
 )
+
+watch(sourceTabsHidden, (isHidden) => {
+    localStorage.setItem(SOURCE_TABS_HIDDEN_STORAGE_KEY, String(isHidden))
+})
 </script>
 
 <template>
     <header
-        class="grid min-h-20 grid-cols-[32px_minmax(0,1fr)_auto] items-center border-b border-[#2b3a50] bg-[#151f30] px-3 py-3"
+        :class="[
+            'grid grid-cols-[32px_minmax(0,1fr)_auto] items-center border-b border-[#2b3a50] bg-[#151f30] px-3 py-3',
+            headerIsCompact ? 'min-h-16' : 'min-h-20',
+        ]"
     >
         <button
             type="button"
@@ -225,34 +240,83 @@ watch(
                 No sets selected
             </div>
 
-            <div v-else class="grid gap-2">
-                <nav
-                    aria-label="Google Sheets sources"
-                    class="flex flex-wrap justify-center gap-x-5 gap-y-1"
-                >
-                    <button
-                        v-for="group in groupedTrainingSets"
-                        :key="group.sourceId"
-                        type="button"
-                        class="cursor-pointer border-b-2 bg-transparent px-1 py-1 text-xs font-extrabold uppercase tracking-[0.08em] transition duration-200"
-                        :class="
-                            activeGroup?.sourceId === group.sourceId
-                                ? 'border-[#4f8cff] text-[#f3f6fa]'
-                                : 'border-transparent text-[#8291a7] hover:text-[#dbe6f5]'
-                        "
-                        @click="selectGroup(group)"
+            <div
+                v-else
+                :class="['grid', sourceTabsHidden ? 'gap-1' : 'gap-2']"
+            >
+                <Transition name="source-tabs">
+                    <nav
+                        v-if="!sourceTabsHidden"
+                        aria-label="Google Sheets sources"
+                        class="flex flex-wrap justify-center gap-x-5 gap-y-1"
                     >
-                        {{ group.sourceTitle }}
-                    </button>
-                </nav>
+                        <button
+                            v-for="group in groupedTrainingSets"
+                            :key="group.sourceId"
+                            type="button"
+                            class="cursor-pointer border-b-2 bg-transparent px-1 py-1 text-xs font-extrabold uppercase tracking-[0.08em] transition duration-200"
+                            :class="
+                                activeGroup?.sourceId === group.sourceId
+                                    ? 'border-[#4f8cff] text-[#f3f6fa]'
+                                    : 'border-transparent text-[#8291a7] hover:text-[#dbe6f5]'
+                            "
+                            @click="selectGroup(group)"
+                        >
+                            {{ group.sourceTitle }}
+                        </button>
+                    </nav>
+                </Transition>
 
                 <Transition name="set-row" mode="out-in">
-                    <nav
+                    <div
                         v-if="activeGroup"
                         :key="activeGroup.sourceId"
+                        role="navigation"
                         aria-label="Training sets"
                         class="flex flex-wrap justify-center gap-1.5"
                     >
+                        <button
+                            type="button"
+                            aria-label="Toggle source tabs"
+                            :title="
+                                sourceTabsHidden
+                                    ? 'Show source tabs'
+                                    : 'Hide source tabs'
+                            "
+                            class="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-md border border-[#2b3a50] bg-[#1b273a] transition duration-200 active:scale-95"
+                            :class="
+                                sourceTabsHidden
+                                    ? 'text-[#4f8cff]'
+                                    : 'text-[#c9d5e5] hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white'
+                            "
+                            @click="toggleSourceTabs"
+                        >
+                            <svg
+                                aria-hidden="true"
+                                class="h-5 w-5"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                            >
+                                <path
+                                    d="M5 7h14M5 12h14"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                />
+                                <path
+                                    :d="
+                                        sourceTabsHidden
+                                            ? 'M8 16l4 4 4-4'
+                                            : 'M8 19l4-4 4 4'
+                                    "
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </button>
+
                         <button
                             v-for="set in activeGroup.sets"
                             :key="set.key"
@@ -267,30 +331,44 @@ watch(
                         >
                             {{ set.tabTitle }}
                         </button>
-                    </nav>
+                    </div>
                 </Transition>
 
-                <p
+                <div
                     v-if="shouldShowActiveGroupProgress"
-                    class="text-center text-xs font-extrabold uppercase tracking-[0.08em] text-[#8291a7]"
+                    class="flex items-center justify-center gap-2 text-xs font-extrabold uppercase tracking-[0.08em] text-[#8291a7]"
                 >
-                    Done
-                    <span class="text-[#c9d5e5]">
-                        {{ activeGroupProgress.done }} /
-                        {{ activeGroupProgress.total }}
-                    </span>
-                    <span class="mx-1 text-[#2b3a50]">|</span>
-                    Mistakes
-                    <span
-                        :class="
-                            activeGroupProgress.mistakes
-                                ? 'text-[#f58a87]'
-                                : 'text-[#55c98b]'
-                        "
+                    <p>
+                        Done
+                        <span class="text-[#c9d5e5]">
+                            {{ activeGroupProgress.done }} /
+                            {{ activeGroupProgress.total }}
+                        </span>
+                        <span class="mx-1 text-[#2b3a50]">|</span>
+                        Mistakes
+                        <span
+                            :class="
+                                activeGroupProgress.mistakes
+                                    ? 'text-[#f58a87]'
+                                    : 'text-[#55c98b]'
+                            "
+                        >
+                            {{ activeGroupProgress.mistakes }}
+                        </span>
+                    </p>
+
+                    <button
+                        type="button"
+                        aria-label="Reset current source lessons"
+                        title="Reset current source lessons"
+                        class="grid h-6 w-6 cursor-pointer place-items-center rounded border border-[#2b3a50] bg-[#1b273a] text-base text-[#c9d5e5] transition duration-200 hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white active:scale-95"
+                        @click="resetActiveSourceLessons"
                     >
-                        {{ activeGroupProgress.mistakes }}
-                    </span>
-                </p>
+                        <span aria-hidden="true" class="leading-none"
+                            >&#8634;</span
+                        >
+                    </button>
+                </div>
             </div>
 
             <p
@@ -302,39 +380,6 @@ watch(
         </div>
 
         <div class="col-start-3 flex justify-self-end">
-            <button
-                type="button"
-                aria-label="Reset current source lessons"
-                title="Reset current source lessons"
-                :disabled="route !== '#/' || !activeGroup"
-                class="grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent text-3xl text-[#c9d5e5] transition duration-200 active:scale-90 disabled:cursor-not-allowed disabled:opacity-35 hover:text-white"
-                @click="resetActiveSourceLessons"
-            >
-                <span aria-hidden="true" class="text-3xl leading-none"
-                    >&#8634;</span
-                >
-            </button>
-
-            <button
-                type="button"
-                aria-label="Toggle random order"
-                :disabled="!selectedSetKey"
-                :title="
-                    selectedSetRandomEnabled ? 'Random on' : 'Random off'
-                "
-                :class="[
-                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent text-3xl transition duration-200 active:scale-90 disabled:cursor-not-allowed disabled:opacity-35',
-                    selectedSetRandomEnabled
-                        ? 'text-[#4f8cff]'
-                        : 'text-[#c9d5e5] hover:text-white',
-                ]"
-                @click="toggleRandomForSet(selectedSetKey)"
-            >
-                <span aria-hidden="true" class="text-3xl leading-none"
-                    >&#8644;</span
-                >
-            </button>
-
             <button
                 type="button"
                 aria-label="Toggle display mode"
@@ -447,5 +492,29 @@ watch(
 .set-row-enter-from,
 .set-row-leave-to {
     opacity: 0;
+}
+
+.source-tabs-enter-active,
+.source-tabs-leave-active {
+    max-height: 48px;
+    overflow: hidden;
+    transition:
+        max-height 140ms ease,
+        opacity 120ms ease,
+        transform 140ms ease;
+}
+
+.source-tabs-enter-from,
+.source-tabs-leave-to {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-6px);
+}
+
+.source-tabs-enter-to,
+.source-tabs-leave-from {
+    max-height: 48px;
+    opacity: 1;
+    transform: translateY(0);
 }
 </style>
