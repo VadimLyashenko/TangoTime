@@ -25,6 +25,7 @@ onMounted(async () => {
 
         sources.value = savedSources.map((source) => ({
             ...source,
+            testMode: Boolean(source.testMode),
             error: '',
         }))
 
@@ -73,6 +74,7 @@ async function refreshSource(source) {
             source: {
                 ...source,
                 ...latestSource,
+                testMode: Boolean(source.testMode),
                 tabs: latestSource.tabs.map((tab) => ({
                     ...tab,
                     selected: selectedTabs.get(tab.gid) || false,
@@ -127,6 +129,7 @@ async function addSource() {
 
         sources.value.push({
             ...source,
+            testMode: false,
             error: '',
         })
 
@@ -174,6 +177,31 @@ async function setTabs(sourceId, { tabGids, selected }) {
     tabs.forEach((tab) => {
         tab.selected = selected
     })
+
+    await persistSources()
+}
+
+async function toggleTestMode(sourceId) {
+    if (saving.value) {
+        return
+    }
+
+    const source = sources.value.find((item) => item.id === sourceId)
+
+    if (!source) {
+        return
+    }
+
+    if (
+        !source.testMode &&
+        !source.tabs.some((tab) => tab.selected)
+    ) {
+        errorMessage.value = 'Select at least one tab before enabling Test.'
+        return
+    }
+
+    source.testMode = !source.testMode
+    errorMessage.value = ''
 
     await persistSources()
 }
@@ -336,6 +364,7 @@ async function persistSources() {
                     :disabled="saving"
                     @remove="removeSource(source.id)"
                     @set-tabs="setTabs(source.id, $event)"
+                    @toggle-test="toggleTestMode(source.id)"
                     @move-up="moveSourceUp(source.id)"
                     @move-down="moveSourceDown(source.id)"
                 />

@@ -55,6 +55,7 @@ const groupedTrainingSets = computed(() => {
         groups.push({
             sourceId: set.sourceId,
             sourceTitle: set.sourceTitle,
+            testMode: set.mode === 'test',
             sets: [set],
         })
     })
@@ -118,6 +119,8 @@ const activeGroupStatistics = computed(() => {
         return {
             key: set.key,
             tabTitle: set.tabTitle,
+            mode: set.mode || 'tab',
+            tabTitles: set.tabTitles || [set.tabTitle],
             total,
             done: history.length,
             correct: history.length - mistakes.length,
@@ -155,6 +158,7 @@ const activeGroupStatistics = computed(() => {
     return {
         sourceId: activeGroup.value.sourceId,
         sourceTitle: activeGroup.value.sourceTitle,
+        testMode: Boolean(activeGroup.value.testMode),
         timezone: 'Asia/Tokyo',
         localDate: new Intl.DateTimeFormat('en-CA', {
             timeZone: 'Asia/Tokyo',
@@ -172,7 +176,9 @@ const activeGroupStatistics = computed(() => {
 
 const canSaveActiveGroupStatistics = computed(() => {
     return Boolean(
-        activeGroupStatistics.value?.totals.done && !savingStatistics.value,
+        activeGroupStatistics.value?.totals.done &&
+            !savingStatistics.value &&
+            statisticsSaveStatus.value !== 'saved',
     )
 })
 
@@ -269,6 +275,10 @@ function loadTrainingSessions() {
 
 function syncTrainingSessions(event) {
     trainingSessions.value = event.detail?.sessions || loadTrainingSessions()
+
+    if (statisticsSaveStatus.value === 'saved') {
+        statisticsSaveStatus.value = ''
+    }
 }
 
 onMounted(() => {
@@ -300,26 +310,42 @@ watch(
 watch(sourceTabsHidden, (isHidden) => {
     localStorage.setItem(SOURCE_TABS_HIDDEN_STORAGE_KEY, String(isHidden))
 })
+
+watch(
+    () => activeGroup.value?.sourceId,
+    () => {
+        statisticsSaveStatus.value = ''
+    },
+)
 </script>
 
 <template>
     <header
         :class="[
-            'grid grid-cols-[32px_minmax(0,1fr)_auto] items-center border-b border-[#2b3a50] bg-[#151f30] px-3 py-3',
+            'grid grid-cols-[auto_minmax(0,1fr)_auto] items-center border-b border-[#2b3a50] bg-[#151f30] px-3 py-3',
             headerIsCompact ? 'min-h-16' : 'min-h-20',
         ]"
     >
-        <button
-            type="button"
-            class="group flex cursor-pointer items-center gap-2.5 justify-self-start border-0 bg-transparent text-2xl font-extrabold text-[#f3f6fa] transition hover:text-[#78a6ff]"
-            @click="goHome"
-        >
-            <img
-                :src="logoUrl"
-                alt=""
-                class="h-9 w-9 object-contain transition duration-200 group-hover:-rotate-3 group-hover:scale-105"
-            />
-        </button>
+        <div class="flex items-center gap-2 justify-self-start">
+            <button
+                type="button"
+                class="group flex cursor-pointer items-center gap-2.5 border-0 bg-transparent text-2xl font-extrabold text-[#f3f6fa] transition hover:text-[#78a6ff]"
+                @click="goHome"
+            >
+                <img
+                    :src="logoUrl"
+                    alt=""
+                    class="h-9 w-9 object-contain transition duration-200 group-hover:-rotate-3 group-hover:scale-105"
+                />
+            </button>
+
+            <span
+                v-if="route === '#/' && activeGroup?.testMode"
+                class="rounded-md border border-[#4f8cff]/55 bg-[#4f8cff]/12 px-2 py-1 text-xs font-extrabold uppercase tracking-[0.08em] text-[#78a6ff]"
+            >
+                Test
+            </span>
+        </div>
 
         <div v-if="route === '#/'" class="mx-1 min-w-0">
             <div
@@ -365,54 +391,12 @@ watch(sourceTabsHidden, (isHidden) => {
 
                 <Transition name="set-row" mode="out-in">
                     <div
-                        v-if="activeGroup"
+                        v-if="activeGroup && !activeGroup.testMode"
                         :key="activeGroup.sourceId"
                         role="navigation"
                         aria-label="Training sets"
                         class="flex flex-wrap justify-center gap-1.5"
                     >
-                        <button
-                            type="button"
-                            aria-label="Toggle source tabs"
-                            :title="
-                                sourceTabsHidden
-                                    ? 'Show source tabs'
-                                    : 'Hide source tabs'
-                            "
-                            class="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-md border border-[#2b3a50] bg-[#1b273a] transition duration-200 active:scale-95"
-                            :class="
-                                sourceTabsHidden
-                                    ? 'text-[#4f8cff]'
-                                    : 'text-[#c9d5e5] hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white'
-                            "
-                            @click="toggleSourceTabs"
-                        >
-                            <svg
-                                aria-hidden="true"
-                                class="h-5 w-5"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                            >
-                                <path
-                                    d="M5 7h14M5 12h14"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                />
-                                <path
-                                    :d="
-                                        sourceTabsHidden
-                                            ? 'M8 16l4 4 4-4'
-                                            : 'M8 19l4-4 4 4'
-                                    "
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                />
-                            </svg>
-                        </button>
-
                         <button
                             v-for="set in activeGroup.sets"
                             :key="set.key"
@@ -477,12 +461,12 @@ watch(sourceTabsHidden, (isHidden) => {
                         "
                         :disabled="!canSaveActiveGroupStatistics"
                         :class="[
-                            'grid h-6 w-6 cursor-pointer place-items-center rounded border bg-[#1b273a] text-sm transition duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35',
+                            'grid h-6 w-6 cursor-pointer place-items-center rounded border bg-[#1b273a] text-sm transition duration-200 active:scale-95 disabled:cursor-not-allowed',
                             statisticsSaveStatus === 'saved'
                                 ? 'border-[#55c98b]/70 text-[#55c98b]'
                                 : statisticsSaveStatus === 'error'
                                   ? 'border-[#f06a67]/70 text-[#f58a87]'
-                                  : 'border-[#2b3a50] text-[#c9d5e5] hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white',
+                                  : 'border-[#2b3a50] text-[#c9d5e5] hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white disabled:opacity-35',
                         ]"
                         @click="saveActiveGroupStatistics"
                     >
@@ -542,6 +526,47 @@ watch(sourceTabsHidden, (isHidden) => {
         </div>
 
         <div class="col-start-3 flex justify-self-end">
+            <button
+                v-if="route === '#/' && selectedSets.length"
+                type="button"
+                aria-label="Toggle source tabs"
+                :title="
+                    sourceTabsHidden ? 'Show source tabs' : 'Hide source tabs'
+                "
+                :class="[
+                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent transition duration-200 active:scale-90',
+                    sourceTabsHidden
+                        ? 'text-[#4f8cff]'
+                        : 'text-[#c9d5e5] hover:text-white',
+                ]"
+                @click="toggleSourceTabs"
+            >
+                <svg
+                    aria-hidden="true"
+                    class="h-6 w-6"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                >
+                    <path
+                        d="M5 7h14M5 12h14"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                    />
+                    <path
+                        :d="
+                            sourceTabsHidden
+                                ? 'M8 16l4 4 4-4'
+                                : 'M8 19l4-4 4 4'
+                        "
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                </svg>
+            </button>
+
             <button
                 v-if="route === '#/'"
                 type="button"

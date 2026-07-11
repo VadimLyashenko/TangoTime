@@ -205,11 +205,19 @@ function playAudio(audioPath) {
                         </button>
 
                         <div class="min-w-0">
-                            <h2
-                                class="truncate text-lg font-extrabold text-[#f3f6fa]"
-                            >
-                                {{ stat.sourceTitle }}
-                            </h2>
+                            <div class="flex min-w-0 items-center gap-2">
+                                <h2
+                                    class="truncate text-lg font-extrabold text-[#f3f6fa]"
+                                >
+                                    {{ stat.sourceTitle }}
+                                </h2>
+                                <span
+                                    v-if="stat.testMode"
+                                    class="shrink-0 rounded border border-[#4f8cff]/55 bg-[#4f8cff]/12 px-1.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-[0.08em] text-[#78a6ff]"
+                                >
+                                    Test
+                                </span>
+                            </div>
                             <p class="mt-0.5 text-xs font-bold text-[#8291a7]">
                                 {{ formatSavedAt(stat) }}
                             </p>

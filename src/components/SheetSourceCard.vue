@@ -20,7 +20,13 @@ const props = defineProps({
     },
 })
 
-const emit = defineEmits(['remove', 'set-tabs', 'move-up', 'move-down'])
+const emit = defineEmits([
+    'remove',
+    'set-tabs',
+    'toggle-test',
+    'move-up',
+    'move-down',
+])
 const lastSelectedTabIndex = ref(null)
 
 function selectTabs(tab, tabIndex, event) {
@@ -71,6 +77,21 @@ function getTabsInRange(tabIndex) {
             <div class="flex shrink-0 items-center gap-2">
                 <button
                     type="button"
+                    :disabled="disabled"
+                    :class="[
+                        'h-9 cursor-pointer rounded-md border px-3 text-sm font-extrabold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35',
+                        source.testMode
+                            ? 'border-[#4f8cff] bg-[#4f8cff] text-[#0f1726]'
+                            : 'border-[#2b3a50] bg-[#141e2f] text-[#c9d5e5] hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white',
+                    ]"
+                    title="Toggle test mode"
+                    @click="emit('toggle-test')"
+                >
+                    Test
+                </button>
+
+                <button
+                    type="button"
                     :disabled="disabled || !canMoveUp"
                     class="grid h-9 w-9 cursor-pointer place-items-center rounded-md border border-[#2b3a50] bg-[#141e2f] text-sm font-extrabold text-[#c9d5e5] transition hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
                     title="Move up"
@@ -112,17 +133,22 @@ function getTabsInRange(tabIndex) {
                 <label
                     v-for="(tab, index) in source.tabs"
                     :key="tab.gid"
-                    class="flex h-8 cursor-pointer select-none items-center gap-2 rounded-md border border-[#2b3a50] bg-[#141e2f] px-3 text-xs font-bold text-[#c9d5e5] transition hover:border-[#4f8cff]/60 hover:bg-[#21314a]"
+                    class="flex h-8 select-none items-center gap-2 rounded-md border border-[#2b3a50] bg-[#141e2f] px-3 text-xs font-bold text-[#c9d5e5] transition"
                     :class="
-                        tab.selected
-                            ? 'border-[#4f8cff] bg-[#4f8cff]/12 text-[#f3f6fa]'
-                            : ''
+                        source.testMode
+                            ? 'cursor-not-allowed opacity-45'
+                            : [
+                                  'cursor-pointer hover:border-[#4f8cff]/60 hover:bg-[#21314a]',
+                                  tab.selected
+                                      ? 'border-[#4f8cff] bg-[#4f8cff]/12 text-[#f3f6fa]'
+                                      : '',
+                              ]
                     "
                 >
                     <input
                         type="checkbox"
                         :checked="tab.selected"
-                        :disabled="disabled"
+                        :disabled="disabled || source.testMode"
                         class="h-3.5 w-3.5 shrink-0 cursor-pointer accent-[#4f8cff] disabled:cursor-not-allowed"
                         @click="selectTabs(tab, index, $event)"
                     />

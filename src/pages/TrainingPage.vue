@@ -13,6 +13,8 @@ const { displayMode, autoPlayAnswerAudio, isRandomEnabled, toggleRandomForSet } 
     useTrainingPreferencesStore()
 
 const rows = ref([])
+const words = ref([])
+const skippedRows = ref([])
 const loadingRows = ref(false)
 const rowsError = ref('')
 const sessions = ref(loadSessions())
@@ -22,9 +24,6 @@ const currentMistakeCycleIndex = ref(-1)
 let activeAudio = null
 let activeRequestId = 0
 
-const parsedRows = computed(() => parseWordsRowsResult(rows.value))
-const words = computed(() => parsedRows.value.words)
-const skippedRows = computed(() => parsedRows.value.skippedRows)
 const rowsWarning = computed(() => {
     if (!skippedRows.value.length) {
         return ''
@@ -468,6 +467,8 @@ async function loadRowsForSelectedSet(setKey) {
     const set = selectedSets.value.find((item) => item.key === setKey)
 
     rows.value = []
+    words.value = []
+    skippedRows.value = []
     rowsError.value = ''
 
     if (!set) {
@@ -478,14 +479,16 @@ async function loadRowsForSelectedSet(setKey) {
     loadingRows.value = true
 
     try {
-        const loadedRows = await getSheetRows(set.sourceId, set.tabTitle)
+        const loadedResult = await loadWordsForSet(set)
 
         if (requestId !== activeRequestId) {
             return
         }
 
-        rows.value = loadedRows
-        ensureSession(setKey, parseWordsRowsResult(loadedRows).words)
+        rows.value = loadedResult.rows
+        words.value = loadedResult.words
+        skippedRows.value = loadedResult.skippedRows
+        ensureSession(setKey, loadedResult.words)
     } catch (error) {
         if (requestId === activeRequestId) {
             rowsError.value =
@@ -496,6 +499,60 @@ async function loadRowsForSelectedSet(setKey) {
             loadingRows.value = false
         }
     }
+}
+
+async function loadWordsForSet(set) {
+    if (set.mode === 'test') {
+        return loadTestWords(set)
+    }
+
+    return loadTabWords(set.sourceId, set.tabTitle)
+}
+
+async function loadTabWords(sourceId, tabTitle) {
+    const loadedRows = await getSheetRows(sourceId, tabTitle)
+    const result = parseWordsRowsResult(loadedRows)
+
+    return {
+        rows: loadedRows,
+        words: result.words,
+        skippedRows: result.skippedRows,
+    }
+}
+
+async function loadTestWords(set) {
+    const tabTitles = Array.isArray(set.tabTitles) ? set.tabTitles : []
+    const tabResults = await Promise.all(
+        tabTitles.map(async (tabTitle) => {
+            const result = await loadTabWords(set.sourceId, tabTitle)
+
+            return {
+                tabTitle,
+                ...result,
+            }
+        }),
+    )
+
+    return tabResults.reduce(
+        (combinedResult, tabResult) => {
+            combinedResult.rows.push(...tabResult.rows)
+            combinedResult.words.push(
+                ...tabResult.words.map((word) => ({
+                    ...word,
+                    id: `${tabResult.tabTitle}:${word.id}`,
+                    tabTitle: tabResult.tabTitle,
+                })),
+            )
+            combinedResult.skippedRows.push(...tabResult.skippedRows)
+
+            return combinedResult
+        },
+        {
+            rows: [],
+            words: [],
+            skippedRows: [],
+        },
+    )
 }
 
 function checkAnswer(correct) {

@@ -9,18 +9,34 @@ const trainingSetsError = ref('')
 const selectedSetKey = ref(loadSelectedSetKey())
 
 const selectedSets = computed(() => {
-    return sources.value.flatMap((source) =>
-        source.tabs
-            .filter((tab) => tab.selected)
-            .map((tab) => ({
-                key: `${source.id}:${tab.gid}`,
-                sourceId: source.id,
-                sourceTitle: source.title,
-                sourceUrl: source.url,
-                tabGid: tab.gid,
-                tabTitle: tab.title,
-            })),
-    )
+    return sources.value.flatMap((source) => {
+        const selectedTabs = source.tabs.filter((tab) => tab.selected)
+
+        if (source.testMode && selectedTabs.length) {
+            return [
+                {
+                    key: `${source.id}:test`,
+                    sourceId: source.id,
+                    sourceTitle: source.title,
+                    sourceUrl: source.url,
+                    tabTitle: 'Test',
+                    mode: 'test',
+                    tabTitles: selectedTabs.map((tab) => tab.title),
+                },
+            ]
+        }
+
+        return selectedTabs.map((tab) => ({
+            key: `${source.id}:${tab.gid}`,
+            sourceId: source.id,
+            sourceTitle: source.title,
+            sourceUrl: source.url,
+            tabGid: tab.gid,
+            tabTitle: tab.title,
+            mode: 'tab',
+            tabTitles: [tab.title],
+        }))
+    })
 })
 
 const selectedSet = computed(() => {
