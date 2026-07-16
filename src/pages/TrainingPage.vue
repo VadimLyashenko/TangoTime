@@ -838,6 +838,13 @@ function handleResetSourceLessonsEvent(event) {
                                                 {{ currentWord.reading }}
                                             </p>
                                         </template>
+
+                                        <div
+                                            v-if="currentWord.example"
+                                            class="mt-7 max-h-36 w-full max-w-200 overflow-y-auto border-l-2 border-[#4f8cff]/60 bg-[#182235]/75 px-5 py-3 text-left text-lg leading-relaxed whitespace-pre-line text-[#b8c5d8]"
+                                        >
+                                            {{ currentWord.example }}
+                                        </div>
                                     </div>
                                 </Transition>
                             </div>

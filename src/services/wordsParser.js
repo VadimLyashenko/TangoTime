@@ -10,6 +10,7 @@ export function parseWordsRowsResult(rows) {
             const reading = String(row[0] || '').trim()
             const japanese = String(row[1] || '').trim()
             const translation = String(row[2] || '').trim()
+            const example = String(row[3] || '').trim()
             const audioPath = String(row[5] || '').trim()
 
             return {
@@ -18,6 +19,7 @@ export function parseWordsRowsResult(rows) {
                 reading,
                 japanese,
                 translation,
+                example,
                 audioPath,
                 hasReading: Boolean(reading),
             }
