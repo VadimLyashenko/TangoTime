@@ -1,6 +1,10 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getSheetRows } from '../services/googleSheets'
+import {
+    recordTrainingActivity,
+    rollbackTrainingActivity,
+} from '../services/trainingStatsStore'
 import { parseWordsRowsResult } from '../services/wordsParser'
 import { useTrainingPreferencesStore } from '../stores/trainingPreferencesStore'
 import { useTrainingSetsStore } from '../stores/trainingSetsStore'
@@ -305,6 +309,11 @@ function undoLastAnswer() {
     }
 
     const previousEntry = session.history.pop()
+
+    if (previousEntry.activityTracked) {
+        rollbackTrainingActivity(previousEntry.answeredAt).catch(() => {})
+    }
+
     const previousWordIndex = orderedWords.value.findIndex(
         (word) => word.id === previousEntry.wordId,
     )
@@ -567,6 +576,8 @@ function checkAnswer(correct) {
         return
     }
 
+    const answeredAt = new Date().toISOString()
+
     session.answerVisible = true
     session.history.push({
         wordId: currentWord.value.id,
@@ -574,9 +585,12 @@ function checkAnswer(correct) {
         japanese: currentWord.value.japanese,
         translation: currentWord.value.translation,
         audioPath: currentWord.value.audioPath,
-        answeredAt: new Date().toISOString(),
+        answeredAt,
+        activityTracked: true,
         correct,
     })
+
+    recordTrainingActivity(answeredAt).catch(() => {})
 
     if (autoPlayAnswerAudio.value) {
         playCurrentAudio()

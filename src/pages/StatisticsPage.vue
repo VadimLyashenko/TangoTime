@@ -1,11 +1,14 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import ActivityCalendar from '../components/ActivityCalendar.vue'
 import {
     deleteTrainingStat,
-    loadTrainingStats,
+    flushTrainingActivity,
+    loadTrainingStatisticsData,
 } from '../services/trainingStatsStore'
 
 const stats = ref([])
+const dailyActivity = ref({})
 const loading = ref(false)
 const error = ref('')
 const expandedStatIds = ref(new Set())
@@ -27,7 +30,11 @@ async function loadStats() {
     error.value = ''
 
     try {
-        stats.value = await loadTrainingStats()
+        await flushTrainingActivity()
+        const statisticsData = await loadTrainingStatisticsData()
+
+        stats.value = statisticsData.stats
+        dailyActivity.value = statisticsData.dailyActivity
         expandedStatIds.value = new Set(
             [...expandedStatIds.value].filter((statId) =>
                 stats.value.some((stat) => stat.id === statId),
@@ -153,14 +160,20 @@ function playAudio(audioPath) {
             {{ error }}
         </div>
 
-        <div
-            v-else-if="!stats.length"
-            class="border border-dashed border-[#2b3a50] bg-[#182235] p-6 text-[#9eadc1]"
-        >
-            Saved training results will appear here.
-        </div>
+        <div v-else>
+            <ActivityCalendar
+                :daily-activity="dailyActivity"
+                :stats="stats"
+            />
 
-        <div v-else class="grid gap-4">
+            <div
+                v-if="!stats.length"
+                class="border border-dashed border-[#2b3a50] bg-[#182235] p-6 text-[#9eadc1]"
+            >
+                Saved training results will appear here.
+            </div>
+
+            <div v-else class="grid gap-4">
             <article
                 v-for="stat in stats"
                 :key="stat.id"
@@ -388,6 +401,7 @@ function playAudio(audioPath) {
                     </div>
                 </div>
             </article>
+            </div>
         </div>
     </section>
 </template>
