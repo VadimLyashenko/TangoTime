@@ -322,8 +322,8 @@ watch(
 <template>
     <header
         :class="[
-            'grid grid-cols-[auto_minmax(0,1fr)_auto] items-center border-b border-[#2b3a50] bg-[#151f30] px-3 py-3',
-            headerIsCompact ? 'min-h-16' : 'min-h-20',
+            'grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-1 border-b border-[#2b3a50] bg-[#151f30] px-2 py-2 md:grid-cols-[auto_minmax(0,1fr)_auto] md:px-3 md:py-3',
+            headerIsCompact ? 'md:min-h-16' : 'md:min-h-20',
         ]"
     >
         <div class="flex items-center gap-2 justify-self-start">
@@ -335,7 +335,7 @@ watch(
                 <img
                     :src="logoUrl"
                     alt=""
-                    class="h-9 w-9 object-contain transition duration-200 group-hover:-rotate-3 group-hover:scale-105"
+                    class="h-8 w-8 object-contain transition duration-200 group-hover:-rotate-3 group-hover:scale-105 sm:h-9 sm:w-9"
                 />
             </button>
 
@@ -347,7 +347,10 @@ watch(
             </span>
         </div>
 
-        <div v-if="route === '#/'" class="mx-1 min-w-0">
+        <div
+            v-if="route === '#/'"
+            class="col-span-2 row-start-2 mt-2 min-w-0 md:col-span-1 md:col-start-2 md:row-start-1 md:mx-1 md:mt-0"
+        >
             <div
                 v-if="loadingTrainingSets"
                 class="text-center text-sm font-bold text-[#9eadc1]"
@@ -370,13 +373,13 @@ watch(
                     <nav
                         v-if="!sourceTabsHidden"
                         aria-label="Google Sheets sources"
-                        class="flex flex-wrap justify-center gap-x-5 gap-y-1"
+                        class="header-scroll flex overflow-x-auto pb-1 whitespace-nowrap md:flex-wrap md:justify-center md:gap-x-5 md:gap-y-1 md:overflow-visible md:pb-0"
                     >
                         <button
                             v-for="group in groupedTrainingSets"
                             :key="group.sourceId"
                             type="button"
-                            class="cursor-pointer border-b-2 bg-transparent px-1 py-1 text-xs font-extrabold uppercase tracking-[0.08em] transition duration-200"
+                            class="mr-4 shrink-0 cursor-pointer border-b-2 bg-transparent px-1 py-1 text-xs font-extrabold uppercase tracking-[0.08em] transition duration-200 md:mr-0"
                             :class="
                                 activeGroup?.sourceId === group.sourceId
                                     ? 'border-[#4f8cff] text-[#f3f6fa]'
@@ -395,13 +398,13 @@ watch(
                         :key="activeGroup.sourceId"
                         role="navigation"
                         aria-label="Training sets"
-                        class="flex flex-wrap justify-center gap-1.5"
+                        class="header-scroll flex gap-1.5 overflow-x-auto pb-1 whitespace-nowrap md:flex-wrap md:justify-center md:overflow-visible md:pb-0"
                     >
                         <button
                             v-for="set in activeGroup.sets"
                             :key="set.key"
                             type="button"
-                            class="cursor-pointer rounded-md border px-3 py-1.5 text-sm font-bold transition duration-200 active:scale-95"
+                            class="shrink-0 cursor-pointer rounded-md border px-3 py-1.5 text-sm font-bold transition duration-200 active:scale-95"
                             :class="
                                 selectedSetKey === set.key
                                     ? 'border-[#4f8cff] bg-[#4f8cff] text-[#0f1726] shadow-sm shadow-[#4f8cff]/20'
@@ -416,7 +419,7 @@ watch(
 
                 <div
                     v-if="shouldShowActiveGroupProgress"
-                    class="flex items-center justify-center gap-2 text-xs font-extrabold uppercase tracking-[0.08em] text-[#8291a7]"
+                    class="flex items-center justify-center gap-2 text-xs font-extrabold uppercase tracking-[0.08em] whitespace-nowrap text-[#8291a7]"
                 >
                     <p>
                         Done
@@ -525,7 +528,7 @@ watch(
             </p>
         </div>
 
-        <div class="col-start-3 flex justify-self-end">
+        <div class="col-start-2 row-start-1 flex justify-self-end md:col-start-3">
             <button
                 v-if="route === '#/' && selectedSets.length"
                 type="button"
@@ -534,7 +537,7 @@ watch(
                     sourceTabsHidden ? 'Show source tabs' : 'Hide source tabs'
                 "
                 :class="[
-                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent transition duration-200 active:scale-90',
+                    'grid h-10 w-10 cursor-pointer place-items-center border-0 bg-transparent transition duration-200 active:scale-90 sm:h-12 sm:w-12',
                     sourceTabsHidden
                         ? 'text-[#4f8cff]'
                         : 'text-[#c9d5e5] hover:text-white',
@@ -573,7 +576,7 @@ watch(
                 aria-label="Toggle display mode"
                 :title="displayModeLabel"
                 :class="[
-                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent text-2xl font-extrabold transition duration-200 active:scale-90',
+                    'grid h-10 w-10 cursor-pointer place-items-center border-0 bg-transparent text-2xl font-extrabold transition duration-200 active:scale-90 sm:h-12 sm:w-12',
                     displayMode === 'russian'
                         ? 'text-[#4f8cff]'
                         : 'text-[#c9d5e5] hover:text-white',
@@ -601,7 +604,7 @@ watch(
                         : 'Answer audio off'
                 "
                 :class="[
-                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent transition duration-200 active:scale-90',
+                    'grid h-10 w-10 cursor-pointer place-items-center border-0 bg-transparent transition duration-200 active:scale-90 sm:h-12 sm:w-12',
                     autoPlayAnswerAudio
                         ? 'text-[#4f8cff]'
                         : 'text-[#c9d5e5] hover:text-white',
@@ -640,7 +643,7 @@ watch(
                 aria-label="Open statistics"
                 title="Statistics"
                 :class="[
-                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent text-3xl transition duration-200 active:scale-90',
+                    'grid h-10 w-10 cursor-pointer place-items-center border-0 bg-transparent text-3xl transition duration-200 active:scale-90 sm:h-12 sm:w-12',
                     route === '#/statistics'
                         ? 'text-[#4f8cff]'
                         : 'text-[#c9d5e5] hover:text-white',
@@ -657,7 +660,7 @@ watch(
                 aria-label="Open settings"
                 title="Settings"
                 :class="[
-                    'grid h-12 w-12 cursor-pointer place-items-center border-0 bg-transparent text-3xl transition duration-200 hover:rotate-12 active:scale-90',
+                    'grid h-10 w-10 cursor-pointer place-items-center border-0 bg-transparent text-3xl transition duration-200 hover:rotate-12 active:scale-90 sm:h-12 sm:w-12',
                     route === '#/settings'
                         ? 'text-[#4f8cff]'
                         : 'text-[#c9d5e5] hover:text-white',
@@ -705,5 +708,13 @@ watch(
     max-height: 48px;
     opacity: 1;
     transform: translateY(0);
+}
+
+.header-scroll {
+    scrollbar-width: none;
+}
+
+.header-scroll::-webkit-scrollbar {
+    display: none;
 }
 </style>

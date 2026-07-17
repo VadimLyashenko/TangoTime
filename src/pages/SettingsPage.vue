@@ -265,14 +265,14 @@ async function persistSources() {
 
 <template>
     <section :class="$style.card">
-        <div class="mb-8">
+        <div class="mb-6 sm:mb-8">
             <p
                 class="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#4f8cff]"
             >
                 Settings
             </p>
 
-            <h1 class="mb-3 text-4xl font-extrabold tracking-[-0.04em]">
+            <h1 class="mb-3 text-3xl font-extrabold sm:text-4xl">
                 Google Sheets sources
             </h1>
 
@@ -282,7 +282,7 @@ async function persistSources() {
             </p>
         </div>
 
-        <form class="flex gap-3" @submit.prevent="addSource">
+        <form class="flex flex-col gap-3 sm:flex-row" @submit.prevent="addSource">
             <input
                 v-model="sheetUrl"
                 type="url"
@@ -294,7 +294,7 @@ async function persistSources() {
             <button
                 type="submit"
                 :disabled="loading || loadingSources || saving"
-                class="min-h-12 cursor-pointer rounded-md bg-[#4f8cff] px-6 font-bold text-[#0f1726] transition hover:bg-[#6b9fff] disabled:cursor-not-allowed disabled:opacity-50"
+                class="min-h-12 cursor-pointer rounded-md bg-[#4f8cff] px-6 font-bold text-[#0f1726] transition hover:bg-[#6b9fff] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
                 {{ loading ? 'Loading...' : 'Add sheet' }}
             </button>

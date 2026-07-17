@@ -253,7 +253,7 @@ function formatStatTime(stat) {
             <div
                 v-for="weekday in WEEKDAYS"
                 :key="weekday"
-                class="px-2 py-2 text-center text-[0.65rem] font-extrabold uppercase text-[#8291a7]"
+                class="px-0.5 py-2 text-center text-[0.6rem] font-extrabold uppercase text-[#8291a7] sm:px-2 sm:text-[0.65rem]"
             >
                 {{ weekday }}
             </div>
@@ -265,7 +265,7 @@ function formatStatTime(stat) {
                 :key="day.dateKey"
                 type="button"
                 :disabled="!day.inCurrentMonth"
-                class="relative min-h-20 border-b border-r border-[#2b3a50] p-2 text-left transition last:border-r-0 disabled:cursor-default"
+                class="relative min-h-16 border-b border-r border-[#2b3a50] p-1 text-left transition last:border-r-0 disabled:cursor-default sm:min-h-20 sm:p-2"
                 :class="[
                     day.inCurrentMonth
                         ? 'cursor-pointer bg-[#182235] hover:bg-[#1c2940]'
@@ -294,20 +294,22 @@ function formatStatTime(stat) {
 
                 <span
                     v-if="day.repeatedWords"
-                    class="mt-2 block text-xs font-extrabold text-[#74d9a4]"
+                    class="mt-1 block text-[0.65rem] font-extrabold text-[#74d9a4] sm:mt-2 sm:text-xs"
                 >
                     {{ day.repeatedWords }}
-                    {{ day.repeatedWords === 1 ? 'word' : 'words' }}
+                    <span class="hidden sm:inline">
+                        {{ day.repeatedWords === 1 ? 'word' : 'words' }}
+                    </span>
                 </span>
 
                 <span
                     v-if="day.savedStats.length"
-                    class="absolute right-2 top-2 flex items-center gap-1 text-xs font-extrabold text-[#8fb6ff]"
+                    class="absolute right-1 top-1 flex items-center gap-0.5 text-[0.65rem] font-extrabold text-[#8fb6ff] sm:right-2 sm:top-2 sm:gap-1 sm:text-xs"
                     :title="`${day.savedStats.length} saved result${day.savedStats.length === 1 ? '' : 's'}`"
                 >
                     <svg
                         aria-hidden="true"
-                        class="h-4 w-4"
+                        class="h-3.5 w-3.5 sm:h-4 sm:w-4"
                         viewBox="0 0 24 24"
                         fill="none"
                     >

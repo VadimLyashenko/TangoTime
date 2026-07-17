@@ -718,7 +718,7 @@ function handleResetSourceLessonsEvent(event) {
             Choose a training set in the header.
         </div>
 
-        <div v-else class="min-h-130">
+        <div v-else class="min-h-[calc(100dvh-200px)] lg:min-h-130">
             <p
                 v-if="rowsWarning && !loadingRows && !rowsError"
                 class="mb-5 border border-[#f2c94c]/30 bg-[#2a281d] px-4 py-3 text-sm font-bold text-[#f2c94c]"
@@ -749,10 +749,10 @@ function handleResetSourceLessonsEvent(event) {
 
             <div
                 v-else
-                class="grid min-h-150 grid-cols-[minmax(0,1fr)_520px] border-y border-[#2b3a50]"
+                class="grid min-h-[calc(100dvh-200px)] grid-cols-1 border-y border-[#2b3a50] lg:min-h-150 lg:grid-cols-[minmax(0,1fr)_520px]"
             >
                 <main
-                    class="flex border-r border-[#2b3a50] bg-[#141e2f] px-8 py-4"
+                    class="flex min-h-[calc(100dvh-200px)] bg-[#141e2f] px-4 py-4 lg:min-h-0 lg:border-r lg:border-[#2b3a50] lg:px-8"
                 >
                     <div
                         v-if="currentSession.completed"
@@ -763,10 +763,10 @@ function handleResetSourceLessonsEvent(event) {
                         >
                             Lesson complete
                         </p>
-                        <h2 class="mb-8 text-6xl font-extrabold text-[#f3f6fa]">
+                        <h2 class="mb-8 text-5xl font-extrabold text-[#f3f6fa] sm:text-6xl">
                             {{ result.accuracy }}%
                         </h2>
-                        <div class="grid grid-cols-3 gap-3">
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
                             <div
                                 class="border border-[#2b3a50] bg-[#182235] p-4"
                             >
@@ -811,8 +811,8 @@ function handleResetSourceLessonsEvent(event) {
                                         :class="[
                                             'text-[#f3f6fa]',
                                             isShowingJapanese
-                                                ? 'japanese-text text-[12rem] leading-none'
-                                                : 'mx-auto max-w-220 text-7xl font-extrabold leading-tight',
+                                                ? 'japanese-text text-[clamp(5rem,28vw,12rem)] leading-none'
+                                                : 'mx-auto max-w-220 break-words text-[clamp(2.5rem,12vw,4.5rem)] font-extrabold leading-tight',
                                         ]"
                                     >
                                         {{ currentPromptText }}
@@ -820,34 +820,34 @@ function handleResetSourceLessonsEvent(event) {
                                 </div>
                             </Transition>
 
-                            <div class="min-h-0 flex-1 pt-8">
+                            <div class="min-h-0 flex-1 pt-4 sm:pt-8">
                                 <Transition name="answer">
                                     <div
                                         v-if="currentSession.answerVisible"
-                                        class="flex h-full w-full flex-col items-center justify-center border-t border-[#2b3a50] py-6"
+                                        class="flex h-full w-full flex-col items-center justify-center border-t border-[#2b3a50] py-4 sm:py-6"
                                     >
                                         <template v-if="isShowingJapanese">
                                             <p
                                                 v-if="currentWord.reading"
-                                                class="japanese-text mb-4 text-6xl text-[#d8e2f0]"
+                                                class="japanese-text mb-3 text-[clamp(2.4rem,12vw,3.75rem)] text-[#d8e2f0] sm:mb-4"
                                             >
                                                 {{ currentWord.reading }}
                                             </p>
                                             <p
-                                                class="text-5xl font-bold leading-tight text-[#c9d5e5]"
+                                                class="break-words text-[clamp(2rem,10vw,3rem)] font-bold leading-tight text-[#c9d5e5]"
                                             >
                                                 {{ currentWord.translation }}
                                             </p>
                                         </template>
                                         <template v-else>
                                             <p
-                                                class="japanese-text mb-6 text-8xl text-[#f3f6fa]"
+                                                class="japanese-text mb-4 text-[clamp(3.5rem,18vw,6rem)] text-[#f3f6fa] sm:mb-6"
                                             >
                                                 {{ currentWord.japanese }}
                                             </p>
                                             <p
                                                 v-if="currentWord.reading"
-                                                class="japanese-text text-6xl text-[#d8e2f0]"
+                                                class="japanese-text text-[clamp(2.4rem,12vw,3.75rem)] text-[#d8e2f0]"
                                             >
                                                 {{ currentWord.reading }}
                                             </p>
@@ -855,7 +855,7 @@ function handleResetSourceLessonsEvent(event) {
 
                                         <div
                                             v-if="currentWord.example"
-                                            class="mt-7 max-h-36 w-full max-w-200 overflow-y-auto border-l-2 border-[#4f8cff]/60 bg-[#182235]/75 px-5 py-3 text-left text-lg leading-relaxed whitespace-pre-line text-[#b8c5d8]"
+                                            class="mt-5 max-h-32 w-full max-w-200 overflow-y-auto border-l-2 border-[#4f8cff]/60 bg-[#182235]/75 px-3 py-2 text-left text-base leading-relaxed whitespace-pre-line text-[#b8c5d8] sm:mt-7 sm:max-h-36 sm:px-5 sm:py-3 sm:text-lg"
                                         >
                                             {{ currentWord.example }}
                                         </div>
@@ -869,7 +869,7 @@ function handleResetSourceLessonsEvent(event) {
                                     type="button"
                                     aria-label="Play audio"
                                     title="Play audio (A)"
-                                    class="grid h-10 w-10 cursor-pointer place-items-center bg-transparent text-[#8fb6ff] transition duration-100 hover:text-white active:scale-95"
+                                    class="grid h-11 w-11 cursor-pointer place-items-center bg-transparent text-[#8fb6ff] transition duration-100 hover:text-white active:scale-95"
                                     @click="playCurrentAudio"
                                 >
                                     <svg
@@ -902,14 +902,14 @@ function handleResetSourceLessonsEvent(event) {
                                 <template v-if="!currentSession.answerVisible">
                                     <button
                                         type="button"
-                                        class="cursor-pointer rounded-md border border-[#f06a67]/65 bg-transparent px-5 py-2 text-sm font-bold text-[#f58a87] transition duration-100 hover:bg-[#f06a67]/10 hover:shadow-lg hover:shadow-[#f06a67]/10 active:scale-95"
+                                        class="min-h-11 min-w-24 cursor-pointer rounded-md border border-[#f06a67]/65 bg-transparent px-5 py-2 text-sm font-bold text-[#f58a87] transition duration-100 hover:bg-[#f06a67]/10 hover:shadow-lg hover:shadow-[#f06a67]/10 active:scale-95"
                                         @click="checkAnswer(false)"
                                     >
                                         Mistake
                                     </button>
                                     <button
                                         type="button"
-                                        class="cursor-pointer rounded-md bg-[#4f8cff] px-5 py-2 text-sm font-bold text-[#0f1726] transition duration-100 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
+                                        class="min-h-11 min-w-24 cursor-pointer rounded-md bg-[#4f8cff] px-5 py-2 text-sm font-bold text-[#0f1726] transition duration-100 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
                                         @click="checkAnswer(true)"
                                     >
                                         Correct
@@ -923,14 +923,14 @@ function handleResetSourceLessonsEvent(event) {
                                             !currentAnswerEntry ||
                                             currentAnswerEntry.correct === false
                                         "
-                                        class="cursor-pointer rounded-md border border-[#f06a67]/65 bg-transparent px-5 py-2 text-sm font-bold text-[#f58a87] transition duration-100 hover:bg-[#f06a67]/10 hover:shadow-lg hover:shadow-[#f06a67]/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:shadow-none"
+                                        class="min-h-11 min-w-24 cursor-pointer rounded-md border border-[#f06a67]/65 bg-transparent px-5 py-2 text-sm font-bold text-[#f58a87] transition duration-100 hover:bg-[#f06a67]/10 hover:shadow-lg hover:shadow-[#f06a67]/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:shadow-none"
                                         @click="markCurrentAnswer(false)"
                                     >
                                         Mistake
                                     </button>
                                     <button
                                         type="button"
-                                        class="cursor-pointer rounded-md bg-[#4f8cff] px-5 py-2 text-sm font-bold text-[#0f1726] transition duration-100 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
+                                        class="min-h-11 min-w-24 cursor-pointer rounded-md bg-[#4f8cff] px-5 py-2 text-sm font-bold text-[#0f1726] transition duration-100 hover:bg-[#6b9fff] hover:shadow-lg hover:shadow-[#4f8cff]/20 active:scale-95"
                                         @click="goToNextWord"
                                     >
                                         {{
@@ -946,9 +946,9 @@ function handleResetSourceLessonsEvent(event) {
                     </div>
                 </main>
 
-                <aside class="overflow-hidden bg-[#182235]">
+                <aside class="overflow-hidden border-t border-[#2b3a50] bg-[#182235] lg:border-t-0">
                     <div
-                        class="flex items-center justify-between gap-3 border-b border-[#2b3a50] px-5 py-4"
+                        class="flex items-center justify-between gap-2 border-b border-[#2b3a50] px-3 py-3 sm:px-5 sm:py-4"
                     >
                         <div class="flex min-w-0 items-center gap-3">
                             <h2
@@ -1028,7 +1028,7 @@ function handleResetSourceLessonsEvent(event) {
 
                     <div
                         ref="historyScrollElement"
-                        class="max-h-142 overflow-y-auto"
+                        class="max-h-80 overflow-y-auto lg:max-h-142"
                     >
                         <p
                             v-if="!currentSession.history.length"
@@ -1042,7 +1042,7 @@ function handleResetSourceLessonsEvent(event) {
                                 v-for="(entry, index) in currentSession.history"
                                 :key="`${entry.wordId}-${index}`"
                                 :data-history-index="index"
-                                class="grid grid-cols-[24px_minmax(70px,0.55fr)_minmax(110px,0.95fr)_minmax(0,1.35fr)] items-center gap-1.5 border-b px-4 py-2 transition-colors"
+                                class="grid grid-cols-[24px_minmax(62px,0.55fr)_minmax(82px,0.85fr)_minmax(0,1.35fr)] items-center gap-1.5 border-b px-3 py-2 transition-colors sm:grid-cols-[24px_minmax(70px,0.55fr)_minmax(110px,0.95fr)_minmax(0,1.35fr)] sm:px-4"
                                 :class="[
                                     entry.correct
                                         ? 'border-[#55c98b]/15 bg-[#55c98b]/5.5 hover:bg-[#55c98b]/9'

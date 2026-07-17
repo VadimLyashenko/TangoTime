@@ -54,11 +54,11 @@ function getTabsInRange(tabIndex) {
 </script>
 
 <template>
-    <article class="rounded-md border border-[#2b3a50] bg-[#182235] p-5">
-        <div class="flex items-start justify-between gap-4">
-            <div class="flex min-w-0 items-center gap-4">
+    <article class="rounded-md border border-[#2b3a50] bg-[#182235] p-3 sm:p-5">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
                 <h2
-                    class="max-w-72 shrink-0 truncate text-xl font-extrabold tracking-[-0.03em] text-[#f3f6fa]"
+                    class="max-w-full truncate text-xl font-extrabold text-[#f3f6fa] sm:max-w-72 sm:shrink-0"
                 >
                     {{ source.title }}
                 </h2>
@@ -68,13 +68,13 @@ function getTabsInRange(tabIndex) {
                     :title="source.url"
                     target="_blank"
                     rel="noreferrer"
-                    class="block min-w-0 max-w-105 truncate text-sm font-semibold text-[#9eadc1] underline decoration-[#4f8cff]/35 underline-offset-4 transition hover:text-[#78a6ff]"
+                    class="block min-w-0 max-w-full truncate text-xs font-semibold text-[#9eadc1] underline decoration-[#4f8cff]/35 underline-offset-4 transition hover:text-[#78a6ff] sm:max-w-105 sm:text-sm"
                 >
                     {{ source.url }}
                 </a>
             </div>
 
-            <div class="flex shrink-0 items-center gap-2">
+            <div class="flex shrink-0 flex-wrap items-center gap-2">
                 <button
                     type="button"
                     :disabled="disabled"
@@ -133,7 +133,7 @@ function getTabsInRange(tabIndex) {
                 <label
                     v-for="(tab, index) in source.tabs"
                     :key="tab.gid"
-                    class="flex h-8 select-none items-center gap-2 rounded-md border border-[#2b3a50] bg-[#141e2f] px-3 text-xs font-bold text-[#c9d5e5] transition"
+                    class="flex h-10 select-none items-center gap-2 rounded-md border border-[#2b3a50] bg-[#141e2f] px-3 text-xs font-bold text-[#c9d5e5] transition sm:h-8"
                     :class="
                         source.testMode
                             ? 'cursor-not-allowed opacity-45'

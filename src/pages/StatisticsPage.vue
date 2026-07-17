@@ -182,7 +182,7 @@ function playAudio(audioPath) {
                 <header
                     class="flex flex-wrap items-center justify-between gap-3 border-b border-[#2b3a50] px-3 py-3"
                 >
-                    <div class="flex min-w-0 items-center gap-3">
+                    <div class="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:gap-3">
                         <button
                             type="button"
                             :aria-label="
@@ -238,7 +238,7 @@ function playAudio(audioPath) {
                     </div>
 
                     <div
-                        class="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs font-extrabold uppercase tracking-[0.08em]"
+                        class="grid w-full grid-cols-2 items-center gap-x-3 gap-y-2 pl-10 text-xs font-extrabold uppercase tracking-[0.08em] sm:flex sm:w-auto sm:justify-end sm:gap-x-4 sm:gap-y-1 sm:pl-0"
                     >
                         <p class="text-[#8291a7]">
                             Done
@@ -270,7 +270,7 @@ function playAudio(audioPath) {
                             aria-label="Delete statistic"
                             title="Delete statistic"
                             :disabled="deletingStatId === stat.id"
-                            class="grid h-7 w-7 cursor-pointer place-items-center border border-[#f06a67]/45 bg-[#141e2f] text-[#f58a87] transition hover:border-[#f06a67] hover:text-[#ff8a86] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
+                            class="grid h-8 w-8 cursor-pointer place-items-center justify-self-end border border-[#f06a67]/45 bg-[#141e2f] text-[#f58a87] transition hover:border-[#f06a67] hover:text-[#ff8a86] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 sm:h-7 sm:w-7"
                             @click="removeStat(stat.id)"
                         >
                             <span
@@ -300,7 +300,7 @@ function playAudio(audioPath) {
 
                 <div
                     v-if="isStatExpanded(stat.id)"
-                    class="grid gap-4 px-5 py-4 lg:grid-cols-[260px_1fr]"
+                    class="grid gap-4 px-3 py-4 sm:px-5 lg:grid-cols-[260px_1fr]"
                 >
                     <div>
                         <h3
@@ -346,7 +346,7 @@ function playAudio(audioPath) {
                             <div
                                 v-for="(word, index) in stat.mistakeWords"
                                 :key="`${word.setKey}-${word.wordId}-${index}`"
-                                class="grid grid-cols-[28px_minmax(80px,0.7fr)_minmax(100px,0.8fr)_minmax(0,1.6fr)] items-center gap-2 border border-[#f06a67]/15 bg-[#f06a67]/6 px-3 py-2"
+                                class="grid grid-cols-[28px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 border border-[#f06a67]/15 bg-[#f06a67]/6 px-2 py-2 sm:grid-cols-[28px_minmax(80px,0.7fr)_minmax(100px,0.8fr)_minmax(0,1.6fr)] sm:px-3"
                             >
                                 <button
                                     v-if="word.audioPath"
@@ -391,7 +391,7 @@ function playAudio(audioPath) {
                                     {{ word.reading }}
                                 </span>
                                 <span
-                                    class="truncate text-sm font-bold text-[#c9d5e5]"
+                                    class="col-span-2 col-start-2 truncate text-sm font-bold text-[#c9d5e5] sm:col-span-1 sm:col-start-auto"
                                     :title="word.translation"
                                 >
                                     {{ word.translation }}

@@ -41,7 +41,7 @@ onBeforeUnmount(() => {
     <div class="min-h-screen bg-[#111827] text-[#f3f6fa]">
         <AppHeader :route="route" />
 
-        <main class="mx-auto w-[min(1700px,calc(100%-32px))] py-4">
+        <main class="mx-auto w-full max-w-[1700px] px-3 py-3 sm:px-4 sm:py-4">
             <component :is="currentPage" />
         </main>
     </div>
