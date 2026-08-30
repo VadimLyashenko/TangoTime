@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { saveTrainingStat } from '../services/trainingStatsStore'
 import { useTrainingPreferencesStore } from '../stores/trainingPreferencesStore'
 import { useTrainingSetsStore } from '../stores/trainingSetsStore'
@@ -34,10 +34,8 @@ const trainingSessions = ref(loadTrainingSessions())
 const sourceTabsHidden = ref(loadSourceTabsHidden())
 const savingStatistics = ref(false)
 const statisticsSaveStatus = ref('')
-
-const displayModeLabel = computed(() =>
-    displayMode.value === 'japanese' ? 'Show Japanese' : 'Show Russian',
-)
+const sourceTabsElement = ref(null)
+const setTabsElement = ref(null)
 
 const groupedTrainingSets = computed(() => {
     const groups = []
@@ -55,6 +53,7 @@ const groupedTrainingSets = computed(() => {
         groups.push({
             sourceId: set.sourceId,
             sourceTitle: set.sourceTitle,
+            language: set.language === 'english' ? 'english' : 'japanese',
             testMode: set.mode === 'test',
             sets: [set],
         })
@@ -62,6 +61,20 @@ const groupedTrainingSets = computed(() => {
 
     return groups
 })
+
+const activeSourceLanguage = computed(
+    () => activeGroup.value?.language || 'japanese',
+)
+
+const sourceSideLabel = computed(() =>
+    activeSourceLanguage.value === 'english' ? 'English' : 'Japanese',
+)
+
+const displayModeLabel = computed(() =>
+    displayMode.value === 'japanese'
+        ? `Switch to Russian`
+        : `Switch to ${sourceSideLabel.value}`,
+)
 
 const activeGroup = computed(() => {
     return (
@@ -90,8 +103,9 @@ const activeGroupProgress = computed(() => {
 
             progress.total += total
             progress.done += history.length
-            progress.mistakes += history.filter((entry) => !entry.correct)
-                .length
+            progress.mistakes += history.filter(
+                (entry) => !entry.correct,
+            ).length
 
             return progress
         },
@@ -110,9 +124,7 @@ const activeGroupStatistics = computed(() => {
 
     const sets = activeGroup.value.sets.map((set) => {
         const session = trainingSessions.value[set.key]
-        const history = Array.isArray(session?.history)
-            ? session.history
-            : []
+        const history = Array.isArray(session?.history) ? session.history : []
         const total = Array.isArray(session?.order) ? session.order.length : 0
         const mistakes = history.filter((entry) => !entry.correct)
 
@@ -120,6 +132,7 @@ const activeGroupStatistics = computed(() => {
             key: set.key,
             tabTitle: set.tabTitle,
             mode: set.mode || 'tab',
+            language: set.language || activeSourceLanguage.value,
             tabTitles: set.tabTitles || [set.tabTitle],
             total,
             done: history.length,
@@ -130,9 +143,14 @@ const activeGroupStatistics = computed(() => {
                 tabTitle: set.tabTitle,
                 wordId: entry.wordId || '',
                 reading: entry.reading || '',
-                japanese: entry.japanese || '',
+                term: entry.term || entry.japanese || '',
+                japanese: entry.japanese || entry.term || '',
                 translation: entry.translation || '',
                 audioPath: entry.audioPath || '',
+                language:
+                    entry.language ||
+                    set.language ||
+                    activeSourceLanguage.value,
                 answeredAt: entry.answeredAt || null,
             })),
         }
@@ -158,6 +176,7 @@ const activeGroupStatistics = computed(() => {
     return {
         sourceId: activeGroup.value.sourceId,
         sourceTitle: activeGroup.value.sourceTitle,
+        language: activeSourceLanguage.value,
         testMode: Boolean(activeGroup.value.testMode),
         timezone: 'Asia/Tokyo',
         localDate: new Intl.DateTimeFormat('en-CA', {
@@ -177,16 +196,16 @@ const activeGroupStatistics = computed(() => {
 const canSaveActiveGroupStatistics = computed(() => {
     return Boolean(
         activeGroupStatistics.value?.totals.done &&
-            !savingStatistics.value &&
-            statisticsSaveStatus.value !== 'saved',
+        !savingStatistics.value &&
+        statisticsSaveStatus.value !== 'saved',
     )
 })
 
 const shouldShowActiveGroupProgress = computed(() => {
     return Boolean(
         activeGroupProgress.value &&
-            (activeGroupProgress.value.total > 0 ||
-                activeGroupProgress.value.done > 0),
+        (activeGroupProgress.value.total > 0 ||
+            activeGroupProgress.value.done > 0),
     )
 })
 
@@ -208,6 +227,35 @@ function goStatistics() {
 
 function selectTrainingSet(setKey) {
     selectedSetKey.value = setKey
+}
+
+async function keepActiveTabsVisible() {
+    await nextTick()
+
+    scrollActiveTabIntoView(sourceTabsElement.value)
+    scrollActiveTabIntoView(setTabsElement.value)
+}
+
+function scrollActiveTabIntoView(container) {
+    const activeTab = container?.querySelector('[aria-current="page"]')
+
+    if (
+        !container ||
+        !activeTab ||
+        container.scrollWidth <= container.clientWidth
+    ) {
+        return
+    }
+
+    const targetLeft =
+        activeTab.offsetLeft -
+        container.clientWidth / 2 +
+        activeTab.offsetWidth / 2
+
+    container.scrollTo({
+        left: Math.max(targetLeft, 0),
+        behavior: 'smooth',
+    })
 }
 
 function selectGroup(group) {
@@ -264,9 +312,8 @@ function loadSourceTabsHidden() {
 function loadTrainingSessions() {
     try {
         return (
-            JSON.parse(
-                localStorage.getItem(TRAINING_SESSIONS_STORAGE_KEY),
-            ) || {}
+            JSON.parse(localStorage.getItem(TRAINING_SESSIONS_STORAGE_KEY)) ||
+            {}
         )
     } catch {
         return {}
@@ -315,8 +362,17 @@ watch(
     () => activeGroup.value?.sourceId,
     () => {
         statisticsSaveStatus.value = ''
+        keepActiveTabsVisible()
     },
 )
+
+watch(selectedSetKey, keepActiveTabsVisible)
+
+watch(sourceTabsHidden, (isHidden) => {
+    if (!isHidden) {
+        keepActiveTabsVisible()
+    }
+})
 </script>
 
 <template>
@@ -365,12 +421,10 @@ watch(
                 No sets selected
             </div>
 
-            <div
-                v-else
-                :class="['grid', sourceTabsHidden ? 'gap-1' : 'gap-2']"
-            >
+            <div v-else :class="['grid', sourceTabsHidden ? 'gap-1' : 'gap-2']">
                 <Transition name="source-tabs">
                     <nav
+                        ref="sourceTabsElement"
                         v-if="!sourceTabsHidden"
                         aria-label="Google Sheets sources"
                         class="header-scroll flex overflow-x-auto pb-1 whitespace-nowrap md:flex-wrap md:justify-center md:gap-x-5 md:gap-y-1 md:overflow-visible md:pb-0"
@@ -379,11 +433,16 @@ watch(
                             v-for="group in groupedTrainingSets"
                             :key="group.sourceId"
                             type="button"
-                            class="mr-4 shrink-0 cursor-pointer border-b-2 bg-transparent px-1 py-1 text-xs font-extrabold uppercase tracking-[0.08em] transition duration-200 md:mr-0"
+                            class="mr-4 shrink-0 cursor-pointer border-b-2 bg-transparent px-1 py-1 text-xs font-extrabold tracking-[0.08em] transition duration-200 md:mr-0"
                             :class="
                                 activeGroup?.sourceId === group.sourceId
                                     ? 'border-[#4f8cff] text-[#f3f6fa]'
                                     : 'border-transparent text-[#8291a7] hover:text-[#dbe6f5]'
+                            "
+                            :aria-current="
+                                activeGroup?.sourceId === group.sourceId
+                                    ? 'page'
+                                    : undefined
                             "
                             @click="selectGroup(group)"
                         >
@@ -394,6 +453,7 @@ watch(
 
                 <Transition name="set-row" mode="out-in">
                     <div
+                        ref="setTabsElement"
                         v-if="activeGroup && !activeGroup.testMode"
                         :key="activeGroup.sourceId"
                         role="navigation"
@@ -409,6 +469,9 @@ watch(
                                 selectedSetKey === set.key
                                     ? 'border-[#4f8cff] bg-[#4f8cff] text-[#0f1726] shadow-sm shadow-[#4f8cff]/20'
                                     : 'border-[#2b3a50] bg-[#1b273a] text-[#c9d5e5] hover:border-[#4f8cff]/60 hover:bg-[#21314a] hover:text-white'
+                            "
+                            :aria-current="
+                                selectedSetKey === set.key ? 'page' : undefined
                             "
                             @click="selectTrainingSet(set.key)"
                         >
@@ -528,7 +591,9 @@ watch(
             </p>
         </div>
 
-        <div class="col-start-2 row-start-1 flex justify-self-end md:col-start-3">
+        <div
+            class="col-start-2 row-start-1 flex justify-self-end md:col-start-3"
+        >
             <button
                 v-if="route === '#/' && selectedSets.length"
                 type="button"
@@ -558,9 +623,7 @@ watch(
                     />
                     <path
                         :d="
-                            sourceTabsHidden
-                                ? 'M8 16l4 4 4-4'
-                                : 'M8 19l4-4 4 4'
+                            sourceTabsHidden ? 'M8 16l4 4 4-4' : 'M8 19l4-4 4 4'
                         "
                         stroke="currentColor"
                         stroke-width="2"
@@ -573,7 +636,7 @@ watch(
             <button
                 v-if="route === '#/'"
                 type="button"
-                aria-label="Toggle display mode"
+                :aria-label="displayModeLabel"
                 :title="displayModeLabel"
                 :class="[
                     'grid h-10 w-10 cursor-pointer place-items-center border-0 bg-transparent text-2xl font-extrabold transition duration-200 active:scale-90 sm:h-12 sm:w-12',
@@ -584,11 +647,21 @@ watch(
                 @click="toggleDisplayMode"
             >
                 <span
-                    v-if="displayMode === 'japanese'"
+                    v-if="
+                        displayMode === 'japanese' &&
+                        activeSourceLanguage === 'japanese'
+                    "
                     aria-hidden="true"
                     class="japanese-text text-[1.65rem] leading-none"
                     >&#12354;</span
                 >
+                <span
+                    v-else-if="displayMode === 'japanese'"
+                    aria-hidden="true"
+                    class="text-base leading-none tracking-tight"
+                >
+                    EN
+                </span>
                 <span v-else aria-hidden="true" class="text-xl leading-none">
                     Ru
                 </span>
@@ -599,9 +672,7 @@ watch(
                 type="button"
                 aria-label="Toggle answer audio"
                 :title="
-                    autoPlayAnswerAudio
-                        ? 'Answer audio on'
-                        : 'Answer audio off'
+                    autoPlayAnswerAudio ? 'Answer audio on' : 'Answer audio off'
                 "
                 :class="[
                     'grid h-10 w-10 cursor-pointer place-items-center border-0 bg-transparent transition duration-200 active:scale-90 sm:h-12 sm:w-12',

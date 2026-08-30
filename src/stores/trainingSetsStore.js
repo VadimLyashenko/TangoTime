@@ -19,6 +19,7 @@ const selectedSets = computed(() => {
                     sourceId: source.id,
                     sourceTitle: source.title,
                     sourceUrl: source.url,
+                    language: normalizeLanguage(source.language),
                     tabTitle: 'Test',
                     mode: 'test',
                     tabTitles: selectedTabs.map((tab) => tab.title),
@@ -31,6 +32,7 @@ const selectedSets = computed(() => {
             sourceId: source.id,
             sourceTitle: source.title,
             sourceUrl: source.url,
+            language: normalizeLanguage(source.language),
             tabGid: tab.gid,
             tabTitle: tab.title,
             mode: 'tab',
@@ -38,6 +40,10 @@ const selectedSets = computed(() => {
         }))
     })
 })
+
+function normalizeLanguage(language) {
+    return language === 'english' ? 'english' : 'japanese'
+}
 
 const selectedSet = computed(() => {
     return (

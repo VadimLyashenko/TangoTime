@@ -32,7 +32,7 @@ export async function getSpreadsheetInfo(url) {
     )
     endpoint.searchParams.set('key', GOOGLE_SHEETS_API_KEY)
 
-    const response = await fetch(endpoint)
+    const response = await fetchGoogleSheets(endpoint)
 
     if (!response.ok) {
         throw new Error(
@@ -71,7 +71,7 @@ export async function getSheetRows(spreadsheetId, tabTitle) {
     endpoint.searchParams.set('majorDimension', 'ROWS')
     endpoint.searchParams.set('key', GOOGLE_SHEETS_API_KEY)
 
-    const response = await fetch(endpoint)
+    const response = await fetchGoogleSheets(endpoint)
 
     if (!response.ok) {
         throw new Error('Could not load words from this Google Sheets tab.')
@@ -88,11 +88,7 @@ export async function detectSpreadsheetLanguage(spreadsheetId, tabs) {
     const samples = []
 
     for (const tab of tabs || []) {
-        const values = await getSheetColumnValues(
-            spreadsheetId,
-            tab.title,
-            'B',
-        )
+        const values = await getSheetColumnValues(spreadsheetId, tab.title, 'B')
 
         samples.push(...values.slice(0, 2 - samples.length))
 
@@ -121,7 +117,7 @@ async function getSheetColumnValues(spreadsheetId, tabTitle, column) {
     endpoint.searchParams.set('majorDimension', 'ROWS')
     endpoint.searchParams.set('key', GOOGLE_SHEETS_API_KEY)
 
-    const response = await fetch(endpoint)
+    const response = await fetchGoogleSheets(endpoint)
 
     if (!response.ok) {
         throw new Error('Could not inspect this Google Sheets tab.')
@@ -139,7 +135,11 @@ function detectLanguageFromValues(values) {
     let englishValues = 0
 
     values.forEach((value) => {
-        if (/\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Han}/u.test(value)) {
+        if (
+            /\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Han}/u.test(
+                value,
+            )
+        ) {
             japaneseValues += 1
             return
         }
@@ -158,6 +158,22 @@ function detectLanguageFromValues(values) {
     }
 
     return 'unknown'
+}
+
+async function fetchGoogleSheets(endpoint) {
+    try {
+        return await fetch(endpoint, {
+            signal: AbortSignal.timeout(20_000),
+        })
+    } catch (error) {
+        if (error.name === 'TimeoutError') {
+            throw new Error(
+                'Google Sheets request timed out. Please try again.',
+            )
+        }
+
+        throw error
+    }
 }
 
 function createSheetRange(tabTitle, columns = 'A:Z') {

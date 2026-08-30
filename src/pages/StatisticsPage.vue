@@ -142,6 +142,18 @@ function playAudio(audioPath) {
         activeAudio = null
     })
 }
+
+function getWordTerm(word) {
+    return word?.term || word?.japanese || ''
+}
+
+function getWordLanguage(word, stat) {
+    return word?.language || stat?.language || 'japanese'
+}
+
+function getLanguageLabel(stat) {
+    return stat?.language === 'english' ? 'EN' : 'JP'
+}
 </script>
 
 <template>
@@ -161,10 +173,7 @@ function playAudio(audioPath) {
         </div>
 
         <div v-else>
-            <ActivityCalendar
-                :daily-activity="dailyActivity"
-                :stats="stats"
-            />
+            <ActivityCalendar :daily-activity="dailyActivity" :stats="stats" />
 
             <div
                 v-if="!stats.length"
@@ -174,233 +183,262 @@ function playAudio(audioPath) {
             </div>
 
             <div v-else class="grid gap-4">
-            <article
-                v-for="stat in stats"
-                :key="stat.id"
-                class="border border-[#2b3a50] bg-[#182235]"
-            >
-                <header
-                    class="flex flex-wrap items-center justify-between gap-3 border-b border-[#2b3a50] px-3 py-3"
+                <article
+                    v-for="stat in stats"
+                    :key="stat.id"
+                    class="border border-[#2b3a50] bg-[#182235]"
                 >
-                    <div class="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:gap-3">
-                        <button
-                            type="button"
-                            :aria-label="
-                                isStatExpanded(stat.id)
-                                    ? 'Collapse statistic'
-                                    : 'Expand statistic'
-                            "
-                            :title="
-                                isStatExpanded(stat.id)
-                                    ? 'Collapse statistic'
-                                    : 'Expand statistic'
-                            "
-                            class="grid h-8 w-8 shrink-0 cursor-pointer place-items-center bg-transparent text-[#c9d5e5] transition hover:text-white active:scale-95"
-                            @click="toggleStat(stat.id)"
+                    <header
+                        class="flex flex-wrap items-center justify-between gap-3 border-b border-[#2b3a50] px-3 py-3"
+                    >
+                        <div
+                            class="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:gap-3"
                         >
-                            <svg
-                                aria-hidden="true"
-                                class="h-5 w-5 transition-transform duration-150"
-                                :class="
-                                    isStatExpanded(stat.id) ? 'rotate-90' : ''
+                            <button
+                                type="button"
+                                :aria-label="
+                                    isStatExpanded(stat.id)
+                                        ? 'Collapse statistic'
+                                        : 'Expand statistic'
                                 "
-                                viewBox="0 0 24 24"
-                                fill="none"
+                                :title="
+                                    isStatExpanded(stat.id)
+                                        ? 'Collapse statistic'
+                                        : 'Expand statistic'
+                                "
+                                class="grid h-8 w-8 shrink-0 cursor-pointer place-items-center bg-transparent text-[#c9d5e5] transition hover:text-white active:scale-95"
+                                @click="toggleStat(stat.id)"
                             >
-                                <path
-                                    d="M9 6l6 6-6 6"
-                                    stroke="currentColor"
-                                    stroke-width="2.4"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                />
-                            </svg>
-                        </button>
+                                <svg
+                                    aria-hidden="true"
+                                    class="h-5 w-5 transition-transform duration-150"
+                                    :class="
+                                        isStatExpanded(stat.id)
+                                            ? 'rotate-90'
+                                            : ''
+                                    "
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                >
+                                    <path
+                                        d="M9 6l6 6-6 6"
+                                        stroke="currentColor"
+                                        stroke-width="2.4"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                </svg>
+                            </button>
 
-                        <div class="min-w-0">
-                            <div class="flex min-w-0 items-center gap-2">
-                                <h2
-                                    class="truncate text-lg font-extrabold text-[#f3f6fa]"
+                            <div class="min-w-0">
+                                <div class="flex min-w-0 items-center gap-2">
+                                    <h2
+                                        class="truncate text-lg font-extrabold text-[#f3f6fa]"
+                                    >
+                                        {{ stat.sourceTitle }}
+                                    </h2>
+                                    <span
+                                        class="shrink-0 rounded border border-[#8b5fc7]/55 bg-[#8b5fc7]/12 px-1.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-[0.08em] text-[#d5a6ff]"
+                                    >
+                                        {{ getLanguageLabel(stat) }}
+                                    </span>
+                                    <span
+                                        v-if="stat.testMode"
+                                        class="shrink-0 rounded border border-[#4f8cff]/55 bg-[#4f8cff]/12 px-1.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-[0.08em] text-[#78a6ff]"
+                                    >
+                                        Test
+                                    </span>
+                                </div>
+                                <p
+                                    class="mt-0.5 text-xs font-bold text-[#8291a7]"
                                 >
-                                    {{ stat.sourceTitle }}
-                                </h2>
-                                <span
-                                    v-if="stat.testMode"
-                                    class="shrink-0 rounded border border-[#4f8cff]/55 bg-[#4f8cff]/12 px-1.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-[0.08em] text-[#78a6ff]"
-                                >
-                                    Test
-                                </span>
+                                    {{ formatSavedAt(stat) }}
+                                </p>
                             </div>
-                            <p class="mt-0.5 text-xs font-bold text-[#8291a7]">
-                                {{ formatSavedAt(stat) }}
-                            </p>
                         </div>
-                    </div>
+
+                        <div
+                            class="grid w-full grid-cols-2 items-center gap-x-3 gap-y-2 pl-10 text-xs font-extrabold uppercase tracking-[0.08em] sm:flex sm:w-auto sm:justify-end sm:gap-x-4 sm:gap-y-1 sm:pl-0"
+                        >
+                            <p class="text-[#8291a7]">
+                                Done
+                                <strong class="ml-1 text-[#c9d5e5]">
+                                    {{ stat.totals?.done || 0 }} /
+                                    {{ stat.totals?.total || 0 }}
+                                </strong>
+                            </p>
+                            <p class="text-[#8291a7]">
+                                Correct
+                                <strong class="ml-1 text-[#55c98b]">
+                                    {{ stat.totals?.correct || 0 }}
+                                </strong>
+                            </p>
+                            <p class="text-[#8291a7]">
+                                Mistakes
+                                <strong class="ml-1 text-[#f58a87]">
+                                    {{ stat.totals?.mistakes || 0 }}
+                                </strong>
+                            </p>
+                            <p class="text-[#8291a7]">
+                                Accuracy
+                                <strong class="ml-1 text-[#4f8cff]">
+                                    {{ stat.totals?.accuracy || 0 }}%
+                                </strong>
+                            </p>
+                            <button
+                                type="button"
+                                aria-label="Delete statistic"
+                                title="Delete statistic"
+                                :disabled="deletingStatId === stat.id"
+                                class="grid h-8 w-8 cursor-pointer place-items-center justify-self-end border border-[#f06a67]/45 bg-[#141e2f] text-[#f58a87] transition hover:border-[#f06a67] hover:text-[#ff8a86] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 sm:h-7 sm:w-7"
+                                @click="removeStat(stat.id)"
+                            >
+                                <span
+                                    v-if="deletingStatId === stat.id"
+                                    aria-hidden="true"
+                                    class="text-[0.65rem] leading-none"
+                                >
+                                    ...
+                                </span>
+                                <svg
+                                    v-else
+                                    aria-hidden="true"
+                                    class="h-4 w-4"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                >
+                                    <path
+                                        d="M7 7l10 10M17 7L7 17"
+                                        stroke="currentColor"
+                                        stroke-width="2.4"
+                                        stroke-linecap="round"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                    </header>
 
                     <div
-                        class="grid w-full grid-cols-2 items-center gap-x-3 gap-y-2 pl-10 text-xs font-extrabold uppercase tracking-[0.08em] sm:flex sm:w-auto sm:justify-end sm:gap-x-4 sm:gap-y-1 sm:pl-0"
+                        v-if="isStatExpanded(stat.id)"
+                        class="grid gap-4 px-3 py-4 sm:px-5 lg:grid-cols-[260px_1fr]"
                     >
-                        <p class="text-[#8291a7]">
-                            Done
-                            <strong class="ml-1 text-[#c9d5e5]">
-                                {{ stat.totals?.done || 0 }} /
-                                {{ stat.totals?.total || 0 }}
-                            </strong>
-                        </p>
-                        <p class="text-[#8291a7]">
-                            Correct
-                            <strong class="ml-1 text-[#55c98b]">
-                                {{ stat.totals?.correct || 0 }}
-                            </strong>
-                        </p>
-                        <p class="text-[#8291a7]">
-                            Mistakes
-                            <strong class="ml-1 text-[#f58a87]">
-                                {{ stat.totals?.mistakes || 0 }}
-                            </strong>
-                        </p>
-                        <p class="text-[#8291a7]">
-                            Accuracy
-                            <strong class="ml-1 text-[#4f8cff]">
-                                {{ stat.totals?.accuracy || 0 }}%
-                            </strong>
-                        </p>
-                        <button
-                            type="button"
-                            aria-label="Delete statistic"
-                            title="Delete statistic"
-                            :disabled="deletingStatId === stat.id"
-                            class="grid h-8 w-8 cursor-pointer place-items-center justify-self-end border border-[#f06a67]/45 bg-[#141e2f] text-[#f58a87] transition hover:border-[#f06a67] hover:text-[#ff8a86] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 sm:h-7 sm:w-7"
-                            @click="removeStat(stat.id)"
-                        >
-                            <span
-                                v-if="deletingStatId === stat.id"
-                                aria-hidden="true"
-                                class="text-[0.65rem] leading-none"
+                        <div>
+                            <h3
+                                class="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#8291a7]"
                             >
-                                ...
-                            </span>
-                            <svg
-                                v-else
-                                aria-hidden="true"
-                                class="h-4 w-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                            >
-                                <path
-                                    d="M7 7l10 10M17 7L7 17"
-                                    stroke="currentColor"
-                                    stroke-width="2.4"
-                                    stroke-linecap="round"
-                                />
-                            </svg>
-                        </button>
-                    </div>
-                </header>
-
-                <div
-                    v-if="isStatExpanded(stat.id)"
-                    class="grid gap-4 px-3 py-4 sm:px-5 lg:grid-cols-[260px_1fr]"
-                >
-                    <div>
-                        <h3
-                            class="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#8291a7]"
-                        >
-                            Lessons
-                        </h3>
-                        <div class="grid gap-2">
-                            <div
-                                v-for="set in stat.sets || []"
-                                :key="set.key"
-                                class="border border-[#2b3a50] bg-[#141e2f] px-3 py-2 text-sm"
-                            >
-                                <p class="font-extrabold text-[#f3f6fa]">
-                                    {{ set.tabTitle }}
-                                </p>
-                                <p class="mt-1 text-xs font-bold text-[#8291a7]">
-                                    {{ set.done }} / {{ set.total }}
-                                    <span class="text-[#2b3a50]">|</span>
-                                    <span class="text-[#f58a87]">
-                                        {{ set.mistakes }}
-                                    </span>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3
-                            class="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#8291a7]"
-                        >
-                            Mistake words
-                        </h3>
-
-                        <p
-                            v-if="!stat.mistakeWords?.length"
-                            class="border border-[#2b3a50] bg-[#141e2f] p-4 text-sm font-semibold text-[#55c98b]"
-                        >
-                            No mistakes saved for this result.
-                        </p>
-
-                        <div v-else class="grid gap-1">
-                            <div
-                                v-for="(word, index) in stat.mistakeWords"
-                                :key="`${word.setKey}-${word.wordId}-${index}`"
-                                class="grid grid-cols-[28px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 border border-[#f06a67]/15 bg-[#f06a67]/6 px-2 py-2 sm:grid-cols-[28px_minmax(80px,0.7fr)_minmax(100px,0.8fr)_minmax(0,1.6fr)] sm:px-3"
-                            >
-                                <button
-                                    v-if="word.audioPath"
-                                    type="button"
-                                    aria-label="Play mistake audio"
-                                    title="Play audio"
-                                    class="grid h-7 w-7 cursor-pointer place-items-center bg-transparent text-[#8fb6ff] transition hover:text-white active:scale-95"
-                                    @click="playAudio(word.audioPath)"
+                                Lessons
+                            </h3>
+                            <div class="grid gap-2">
+                                <div
+                                    v-for="set in stat.sets || []"
+                                    :key="set.key"
+                                    class="border border-[#2b3a50] bg-[#141e2f] px-3 py-2 text-sm"
                                 >
-                                    <svg
-                                        aria-hidden="true"
-                                        viewBox="0 0 24 24"
-                                        class="h-5 w-5"
-                                        fill="none"
+                                    <p class="font-extrabold text-[#f3f6fa]">
+                                        {{ set.tabTitle }}
+                                    </p>
+                                    <p
+                                        class="mt-1 text-xs font-bold text-[#8291a7]"
                                     >
-                                        <path
-                                            d="M5 9.5h3L12 6v12l-4-3.5H5z"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linejoin="round"
-                                        />
-                                        <path
-                                            d="M16 9.5a4 4 0 0 1 0 5"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                        />
-                                    </svg>
-                                </button>
-                                <span v-else aria-hidden="true"></span>
+                                        {{ set.done }} / {{ set.total }}
+                                        <span class="text-[#2b3a50]">|</span>
+                                        <span class="text-[#f58a87]">
+                                            {{ set.mistakes }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
 
-                                <strong
-                                    class="japanese-text truncate text-xl font-normal text-[#f3f6fa]"
-                                    :title="word.japanese"
+                        <div>
+                            <h3
+                                class="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#8291a7]"
+                            >
+                                Mistake words
+                            </h3>
+
+                            <p
+                                v-if="!stat.mistakeWords?.length"
+                                class="border border-[#2b3a50] bg-[#141e2f] p-4 text-sm font-semibold text-[#55c98b]"
+                            >
+                                No mistakes saved for this result.
+                            </p>
+
+                            <div v-else class="grid gap-1">
+                                <div
+                                    v-for="(word, index) in stat.mistakeWords"
+                                    :key="`${word.setKey}-${word.wordId}-${index}`"
+                                    class="grid grid-cols-[28px_minmax(0,1fr)] items-center gap-2 border border-[#f06a67]/15 bg-[#f06a67]/6 px-2 py-2 sm:px-3"
                                 >
-                                    {{ word.japanese }}
-                                </strong>
-                                <span
-                                    class="japanese-text truncate text-lg text-[#c9d5e5]"
-                                    :title="word.reading"
-                                >
-                                    {{ word.reading }}
-                                </span>
-                                <span
-                                    class="col-span-2 col-start-2 truncate text-sm font-bold text-[#c9d5e5] sm:col-span-1 sm:col-start-auto"
-                                    :title="word.translation"
-                                >
-                                    {{ word.translation }}
-                                </span>
+                                    <button
+                                        v-if="word.audioPath"
+                                        type="button"
+                                        aria-label="Play mistake audio"
+                                        title="Play audio"
+                                        class="grid h-7 w-7 cursor-pointer place-items-center bg-transparent text-[#8fb6ff] transition hover:text-white active:scale-95"
+                                        @click="playAudio(word.audioPath)"
+                                    >
+                                        <svg
+                                            aria-hidden="true"
+                                            viewBox="0 0 24 24"
+                                            class="h-5 w-5"
+                                            fill="none"
+                                        >
+                                            <path
+                                                d="M5 9.5h3L12 6v12l-4-3.5H5z"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linejoin="round"
+                                            />
+                                            <path
+                                                d="M16 9.5a4 4 0 0 1 0 5"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                            />
+                                        </svg>
+                                    </button>
+                                    <span v-else aria-hidden="true"></span>
+
+                                    <div
+                                        class="grid min-w-0 grid-cols-1 gap-x-3 gap-y-0.5 sm:grid-cols-[minmax(100px,0.9fr)_minmax(100px,0.85fr)_minmax(140px,1.35fr)] sm:items-center"
+                                    >
+                                        <strong
+                                            :class="[
+                                                'min-w-0 truncate text-[#f3f6fa]',
+                                                getWordLanguage(word, stat) ===
+                                                'japanese'
+                                                    ? 'japanese-text text-xl font-normal'
+                                                    : 'english-text text-base sm:text-lg',
+                                            ]"
+                                            :title="getWordTerm(word)"
+                                        >
+                                            {{ getWordTerm(word) }}
+                                        </strong>
+                                        <span
+                                            :class="[
+                                                'min-w-0 truncate text-[#c9d5e5]',
+                                                getWordLanguage(word, stat) ===
+                                                'japanese'
+                                                    ? 'japanese-text text-lg'
+                                                    : 'text-sm font-semibold tracking-wide',
+                                            ]"
+                                            :title="word.reading || '-'"
+                                        >
+                                            {{ word.reading || '-' }}
+                                        </span>
+                                        <span
+                                            class="min-w-0 truncate text-sm font-bold text-[#c9d5e5]"
+                                            :title="word.translation"
+                                        >
+                                            {{ word.translation }}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </article>
+                </article>
             </div>
         </div>
     </section>

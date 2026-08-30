@@ -22,24 +22,32 @@ function getTokyoDateKey(date) {
     return `${partValue('year')}-${partValue('month')}-${partValue('day')}`
 }
 
-export function recordTrainingActivity(answeredAtIso) {
-    return adjustTrainingActivity(answeredAtIso, 1)
+export function recordTrainingActivity(answeredAtIso, language = 'japanese') {
+    return adjustTrainingActivity(answeredAtIso, language, 1)
 }
 
-export function rollbackTrainingActivity(answeredAtIso) {
-    return adjustTrainingActivity(answeredAtIso, -1)
+export function rollbackTrainingActivity(answeredAtIso, language = 'japanese') {
+    return adjustTrainingActivity(answeredAtIso, language, -1)
 }
 
-function adjustTrainingActivity(answeredAtIso, amount) {
+function adjustTrainingActivity(answeredAtIso, language, amount) {
     const answeredAt = answeredAtIso ? new Date(answeredAtIso) : new Date()
     const dateKey = getTokyoDateKey(answeredAt)
+    const sourceLanguage = language === 'english' ? 'english' : 'japanese'
     const pendingDay = pendingActivity.get(dateKey) || {
         count: 0,
+        byLanguage: {},
         lastAnsweredAtIso: answeredAt.toISOString(),
     }
 
     pendingDay.count += amount
+    pendingDay.byLanguage[sourceLanguage] =
+        (pendingDay.byLanguage[sourceLanguage] || 0) + amount
     pendingDay.lastAnsweredAtIso = answeredAt.toISOString()
+
+    if (!pendingDay.byLanguage[sourceLanguage]) {
+        delete pendingDay.byLanguage[sourceLanguage]
+    }
 
     if (pendingDay.count) {
         pendingActivity.set(dateKey, pendingDay)
@@ -80,41 +88,57 @@ export function flushTrainingActivity() {
 
     pendingActivity.clear()
 
-    activityFlushPromise = activityFlushPromise.catch(() => {}).then(async () => {
-        const dailyActivity = {}
+    activityFlushPromise = activityFlushPromise
+        .catch(() => {})
+        .then(async () => {
+            const dailyActivity = {}
 
-        activityToSave.forEach((day, dateKey) => {
-            dailyActivity[dateKey] = {
-                count: increment(day.count),
-                lastAnsweredAtIso: day.lastAnsweredAtIso,
-            }
-        })
-
-        try {
-            await setDoc(
-                doc(db, ...APP_STATE_DOCUMENT_PATH),
-                {
-                    dailyActivity,
-                },
-                {
-                    merge: true,
-                },
-            )
-        } catch (error) {
             activityToSave.forEach((day, dateKey) => {
-                const pendingDay = pendingActivity.get(dateKey) || {
-                    count: 0,
+                const byLanguage = Object.fromEntries(
+                    Object.entries(day.byLanguage || {}).map(
+                        ([language, count]) => [language, increment(count)],
+                    ),
+                )
+
+                dailyActivity[dateKey] = {
+                    count: increment(day.count),
+                    byLanguage,
                     lastAnsweredAtIso: day.lastAnsweredAtIso,
                 }
-
-                pendingDay.count += day.count
-                pendingDay.lastAnsweredAtIso = day.lastAnsweredAtIso
-                pendingActivity.set(dateKey, pendingDay)
             })
 
-            throw error
-        }
-    })
+            try {
+                await setDoc(
+                    doc(db, ...APP_STATE_DOCUMENT_PATH),
+                    {
+                        dailyActivity,
+                    },
+                    {
+                        merge: true,
+                    },
+                )
+            } catch (error) {
+                activityToSave.forEach((day, dateKey) => {
+                    const pendingDay = pendingActivity.get(dateKey) || {
+                        count: 0,
+                        byLanguage: {},
+                        lastAnsweredAtIso: day.lastAnsweredAtIso,
+                    }
+
+                    pendingDay.count += day.count
+                    Object.entries(day.byLanguage || {}).forEach(
+                        ([language, count]) => {
+                            pendingDay.byLanguage[language] =
+                                (pendingDay.byLanguage[language] || 0) + count
+                        },
+                    )
+                    pendingDay.lastAnsweredAtIso = day.lastAnsweredAtIso
+                    pendingActivity.set(dateKey, pendingDay)
+                })
+
+                throw error
+            }
+        })
 
     return activityFlushPromise
 }

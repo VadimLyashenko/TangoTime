@@ -13,8 +13,12 @@ const STORAGE_KEY = 'tangotime-training-sessions'
 
 const { selectedSets, selectedSet, loadingTrainingSets, trainingSetsError } =
     useTrainingSetsStore()
-const { displayMode, autoPlayAnswerAudio, isRandomEnabled, toggleRandomForSet } =
-    useTrainingPreferencesStore()
+const {
+    displayMode,
+    autoPlayAnswerAudio,
+    isRandomEnabled,
+    toggleRandomForSet,
+} = useTrainingPreferencesStore()
 
 const rows = ref([])
 const words = ref([])
@@ -64,17 +68,45 @@ const currentWord = computed(() => {
     )
 })
 
-const isShowingJapanese = computed(() => displayMode.value === 'japanese')
+const currentLanguage = computed(() =>
+    selectedSet.value?.language === 'english' ? 'english' : 'japanese',
+)
+
+const isJapaneseSource = computed(() => currentLanguage.value === 'japanese')
+
+// The persisted values predate multi-language sources: "japanese" means
+// source side and "russian" means translation side for every language.
+const isShowingSource = computed(() => displayMode.value === 'japanese')
+
+const currentTerm = computed(() => getWordTerm(currentWord.value))
 
 const currentPromptText = computed(() => {
     if (!currentWord.value) {
         return ''
     }
 
-    return isShowingJapanese.value
-        ? currentWord.value.japanese
+    return isShowingSource.value
+        ? currentTerm.value
         : currentWord.value.translation
 })
+
+const currentPromptClass = computed(() => {
+    if (!isShowingSource.value) {
+        return 'mx-auto max-w-220 text-balance break-words text-[clamp(2.25rem,10vw,4.5rem)] font-extrabold leading-tight'
+    }
+
+    if (isJapaneseSource.value) {
+        return 'japanese-text text-[clamp(5rem,28vw,12rem)] leading-none'
+    }
+
+    return 'english-text mx-auto max-w-220 text-balance break-words text-[clamp(2.35rem,10vw,5.5rem)] leading-[1.05]'
+})
+
+const currentTermClass = computed(() =>
+    isJapaneseSource.value
+        ? 'japanese-text text-[clamp(3.5rem,18vw,6rem)] font-normal'
+        : 'english-text max-w-full text-balance break-words text-[clamp(2.5rem,10vw,4.75rem)] leading-[1.08]',
+)
 
 const currentAudioUrl = computed(() => {
     return currentWord.value?.audioPath
@@ -259,8 +291,10 @@ function backfillHistoryAudio(setKey, loadedWords) {
 
         entry.audioPath = entry.audioPath || word.audioPath || ''
         entry.reading = entry.reading || word.reading || ''
-        entry.japanese = entry.japanese || word.japanese || ''
+        entry.term = entry.term || entry.japanese || getWordTerm(word)
+        entry.japanese = entry.japanese || entry.term || ''
         entry.translation = entry.translation || word.translation || ''
+        entry.language = entry.language || word.language || 'japanese'
     })
 }
 
@@ -311,7 +345,10 @@ function undoLastAnswer() {
     const previousEntry = session.history.pop()
 
     if (previousEntry.activityTracked) {
-        rollbackTrainingActivity(previousEntry.answeredAt).catch(() => {})
+        rollbackTrainingActivity(
+            previousEntry.answeredAt,
+            previousEntry.language || 'japanese',
+        ).catch(() => {})
     }
 
     const previousWordIndex = orderedWords.value.findIndex(
@@ -515,12 +552,12 @@ async function loadWordsForSet(set) {
         return loadTestWords(set)
     }
 
-    return loadTabWords(set.sourceId, set.tabTitle)
+    return loadTabWords(set.sourceId, set.tabTitle, set.language)
 }
 
-async function loadTabWords(sourceId, tabTitle) {
+async function loadTabWords(sourceId, tabTitle, language = 'japanese') {
     const loadedRows = await getSheetRows(sourceId, tabTitle)
-    const result = parseWordsRowsResult(loadedRows)
+    const result = parseWordsRowsResult(loadedRows, language)
 
     return {
         rows: loadedRows,
@@ -533,7 +570,11 @@ async function loadTestWords(set) {
     const tabTitles = Array.isArray(set.tabTitles) ? set.tabTitles : []
     const tabResults = await Promise.all(
         tabTitles.map(async (tabTitle) => {
-            const result = await loadTabWords(set.sourceId, tabTitle)
+            const result = await loadTabWords(
+                set.sourceId,
+                tabTitle,
+                set.language,
+            )
 
             return {
                 tabTitle,
@@ -582,19 +623,33 @@ function checkAnswer(correct) {
     session.history.push({
         wordId: currentWord.value.id,
         reading: currentWord.value.reading,
-        japanese: currentWord.value.japanese,
+        term: currentTerm.value,
+        japanese: currentTerm.value,
         translation: currentWord.value.translation,
         audioPath: currentWord.value.audioPath,
+        language: currentLanguage.value,
         answeredAt,
         activityTracked: true,
         correct,
     })
 
-    recordTrainingActivity(answeredAt).catch(() => {})
+    recordTrainingActivity(answeredAt, currentLanguage.value).catch(() => {})
 
     if (autoPlayAnswerAudio.value) {
         playCurrentAudio()
     }
+}
+
+function getWordTerm(word) {
+    return word?.term || word?.japanese || ''
+}
+
+function getEntryTerm(entry) {
+    return entry?.term || entry?.japanese || ''
+}
+
+function isJapaneseEntry(entry) {
+    return (entry?.language || currentLanguage.value) === 'japanese'
 }
 
 function goToNextWord() {
@@ -763,10 +818,14 @@ function handleResetSourceLessonsEvent(event) {
                         >
                             Lesson complete
                         </p>
-                        <h2 class="mb-8 text-5xl font-extrabold text-[#f3f6fa] sm:text-6xl">
+                        <h2
+                            class="mb-8 text-5xl font-extrabold text-[#f3f6fa] sm:text-6xl"
+                        >
                             {{ result.accuracy }}%
                         </h2>
-                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+                        <div
+                            class="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3"
+                        >
                             <div
                                 class="border border-[#2b3a50] bg-[#182235] p-4"
                             >
@@ -810,9 +869,7 @@ function handleResetSourceLessonsEvent(event) {
                                     <h2
                                         :class="[
                                             'text-[#f3f6fa]',
-                                            isShowingJapanese
-                                                ? 'japanese-text text-[clamp(5rem,28vw,12rem)] leading-none'
-                                                : 'mx-auto max-w-220 break-words text-[clamp(2.5rem,12vw,4.5rem)] font-extrabold leading-tight',
+                                            currentPromptClass,
                                         ]"
                                     >
                                         {{ currentPromptText }}
@@ -826,10 +883,15 @@ function handleResetSourceLessonsEvent(event) {
                                         v-if="currentSession.answerVisible"
                                         class="flex h-full w-full flex-col items-center justify-center border-t border-[#2b3a50] py-4 sm:py-6"
                                     >
-                                        <template v-if="isShowingJapanese">
+                                        <template v-if="isShowingSource">
                                             <p
                                                 v-if="currentWord.reading"
-                                                class="japanese-text mb-3 text-[clamp(2.4rem,12vw,3.75rem)] text-[#d8e2f0] sm:mb-4"
+                                                :class="[
+                                                    'mb-3 text-[#d8e2f0] sm:mb-4',
+                                                    isJapaneseSource
+                                                        ? 'japanese-text text-[clamp(2.4rem,12vw,3.75rem)]'
+                                                        : 'text-[clamp(1.35rem,6vw,2.15rem)] font-semibold tracking-wide',
+                                                ]"
                                             >
                                                 {{ currentWord.reading }}
                                             </p>
@@ -841,13 +903,21 @@ function handleResetSourceLessonsEvent(event) {
                                         </template>
                                         <template v-else>
                                             <p
-                                                class="japanese-text mb-4 text-[clamp(3.5rem,18vw,6rem)] text-[#f3f6fa] sm:mb-6"
+                                                :class="[
+                                                    'mb-4 text-[#f3f6fa] sm:mb-6',
+                                                    currentTermClass,
+                                                ]"
                                             >
-                                                {{ currentWord.japanese }}
+                                                {{ currentTerm }}
                                             </p>
                                             <p
                                                 v-if="currentWord.reading"
-                                                class="japanese-text text-[clamp(2.4rem,12vw,3.75rem)] text-[#d8e2f0]"
+                                                :class="[
+                                                    'text-[#d8e2f0]',
+                                                    isJapaneseSource
+                                                        ? 'japanese-text text-[clamp(2.4rem,12vw,3.75rem)]'
+                                                        : 'text-[clamp(1.35rem,6vw,2.15rem)] font-semibold tracking-wide',
+                                                ]"
                                             >
                                                 {{ currentWord.reading }}
                                             </p>
@@ -946,14 +1016,14 @@ function handleResetSourceLessonsEvent(event) {
                     </div>
                 </main>
 
-                <aside class="overflow-hidden border-t border-[#2b3a50] bg-[#182235] lg:border-t-0">
+                <aside
+                    class="overflow-hidden border-t border-[#2b3a50] bg-[#182235] lg:border-t-0"
+                >
                     <div
                         class="flex items-center justify-between gap-2 border-b border-[#2b3a50] px-3 py-3 sm:px-5 sm:py-4"
                     >
                         <div class="flex min-w-0 items-center gap-3">
-                            <h2
-                                class="text-base font-extrabold text-[#f3f6fa]"
-                            >
+                            <h2 class="text-base font-extrabold text-[#f3f6fa]">
                                 History
                             </h2>
                             <span
@@ -1042,7 +1112,7 @@ function handleResetSourceLessonsEvent(event) {
                                 v-for="(entry, index) in currentSession.history"
                                 :key="`${entry.wordId}-${index}`"
                                 :data-history-index="index"
-                                class="grid grid-cols-[24px_minmax(62px,0.55fr)_minmax(82px,0.85fr)_minmax(0,1.35fr)] items-center gap-1.5 border-b px-3 py-2 transition-colors sm:grid-cols-[24px_minmax(70px,0.55fr)_minmax(110px,0.95fr)_minmax(0,1.35fr)] sm:px-4"
+                                class="grid grid-cols-[24px_minmax(0,1fr)] items-center gap-2 border-b px-3 py-2 transition-colors sm:px-4"
                                 :class="[
                                     entry.correct
                                         ? 'border-[#55c98b]/15 bg-[#55c98b]/5.5 hover:bg-[#55c98b]/9'
@@ -1082,28 +1152,40 @@ function handleResetSourceLessonsEvent(event) {
                                 </button>
                                 <span v-else aria-hidden="true"></span>
 
-                                <div class="min-w-0">
+                                <div
+                                    class="grid min-w-0 grid-cols-1 gap-x-3 gap-y-0.5 sm:grid-cols-[minmax(100px,0.9fr)_minmax(100px,0.85fr)_minmax(140px,1.35fr)] sm:items-center"
+                                >
                                     <strong
-                                        class="japanese-text block truncate text-xl font-normal text-[#f3f6fa]"
-                                        :title="entry.japanese"
+                                        :class="[
+                                            'block min-w-0 truncate text-[#f3f6fa]',
+                                            isJapaneseEntry(entry)
+                                                ? 'japanese-text text-xl font-normal'
+                                                : 'english-text text-base sm:text-lg',
+                                        ]"
+                                        :title="getEntryTerm(entry)"
                                     >
-                                        {{ entry.japanese }}
+                                        {{ getEntryTerm(entry) }}
                                     </strong>
+
+                                    <span
+                                        :class="[
+                                            'min-w-0 truncate text-[#aebbd0]',
+                                            isJapaneseEntry(entry)
+                                                ? 'japanese-text text-lg'
+                                                : 'text-sm font-semibold tracking-wide',
+                                        ]"
+                                        :title="entry.reading || '-'"
+                                    >
+                                        {{ entry.reading || '-' }}
+                                    </span>
+
+                                    <p
+                                        class="min-w-0 truncate text-sm font-semibold text-[#aebbd0]"
+                                        :title="entry.translation || '-'"
+                                    >
+                                        {{ entry.translation }}
+                                    </p>
                                 </div>
-
-                                <span
-                                    class="japanese-text min-w-0 truncate text-lg text-[#aebbd0]"
-                                    :title="entry.reading || '-'"
-                                >
-                                    {{ entry.reading || '-' }}
-                                </span>
-
-                                <p
-                                    class="min-w-0 truncate pl-2 text-sm font-semibold text-[#aebbd0]"
-                                    :title="entry.translation || '-'"
-                                >
-                                    {{ entry.translation }}
-                                </p>
                             </div>
                         </TransitionGroup>
                     </div>
