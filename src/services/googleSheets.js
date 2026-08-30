@@ -84,8 +84,84 @@ export async function getSheetRows(spreadsheetId, tabTitle) {
     )
 }
 
-function createSheetRange(tabTitle) {
+export async function detectSpreadsheetLanguage(spreadsheetId, tabs) {
+    const samples = []
+
+    for (const tab of tabs || []) {
+        const values = await getSheetColumnValues(
+            spreadsheetId,
+            tab.title,
+            'B',
+        )
+
+        samples.push(...values.slice(0, 2 - samples.length))
+
+        if (samples.length === 2) {
+            break
+        }
+    }
+
+    return detectLanguageFromValues(samples)
+}
+
+async function getSheetColumnValues(spreadsheetId, tabTitle, column) {
+    if (!spreadsheetId || !tabTitle) {
+        return []
+    }
+
+    if (!GOOGLE_SHEETS_API_KEY) {
+        throw new Error('Google Sheets API key is missing.')
+    }
+
+    const range = createSheetRange(tabTitle, `${column}:${column}`)
+    const endpoint = new URL(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
+    )
+
+    endpoint.searchParams.set('majorDimension', 'ROWS')
+    endpoint.searchParams.set('key', GOOGLE_SHEETS_API_KEY)
+
+    const response = await fetch(endpoint)
+
+    if (!response.ok) {
+        throw new Error('Could not inspect this Google Sheets tab.')
+    }
+
+    const data = await response.json()
+
+    return (data.values || [])
+        .map((row) => String(row[0] || '').trim())
+        .filter(Boolean)
+}
+
+function detectLanguageFromValues(values) {
+    let japaneseValues = 0
+    let englishValues = 0
+
+    values.forEach((value) => {
+        if (/\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Han}/u.test(value)) {
+            japaneseValues += 1
+            return
+        }
+
+        if (/\p{Script=Latin}/u.test(value)) {
+            englishValues += 1
+        }
+    })
+
+    if (japaneseValues > englishValues) {
+        return 'japanese'
+    }
+
+    if (englishValues > japaneseValues) {
+        return 'english'
+    }
+
+    return 'unknown'
+}
+
+function createSheetRange(tabTitle, columns = 'A:Z') {
     const escapedTitle = tabTitle.replaceAll("'", "''")
 
-    return `'${escapedTitle}'!A:Z`
+    return `'${escapedTitle}'!${columns}`
 }

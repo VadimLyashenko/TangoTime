@@ -1,7 +1,11 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import SheetSourceCard from '../components/SheetSourceCard.vue'
-import { getSpreadsheetInfo, isGoogleSheetsUrl } from '../services/googleSheets'
+import {
+    detectSpreadsheetLanguage,
+    getSpreadsheetInfo,
+    isGoogleSheetsUrl,
+} from '../services/googleSheets'
 import { loadSources, saveSources } from '../services/sourcesStore'
 
 const sheetUrl = ref('')
@@ -127,8 +131,14 @@ async function addSource() {
             return
         }
 
+        const language = await detectSpreadsheetLanguage(
+            source.id,
+            source.tabs,
+        )
+
         sources.value.push({
             ...source,
+            language,
             testMode: false,
             error: '',
         })

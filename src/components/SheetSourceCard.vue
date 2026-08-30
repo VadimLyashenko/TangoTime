@@ -51,6 +51,30 @@ function getTabsInRange(tabIndex) {
 
     return props.source.tabs.slice(start, end + 1)
 }
+
+function getLanguageLabel(language) {
+    if (language === 'japanese') {
+        return 'JP'
+    }
+
+    if (language === 'english') {
+        return 'EN'
+    }
+
+    return '?'
+}
+
+function getLanguageClass(language) {
+    if (language === 'japanese') {
+        return 'border-[#d676ff]/30 bg-[#d676ff]/10 text-[#e2a0ff]'
+    }
+
+    if (language === 'english') {
+        return 'border-[#4f8cff]/35 bg-[#4f8cff]/12 text-[#78a6ff]'
+    }
+
+    return 'border-[#6f8098]/35 bg-[#6f8098]/10 text-[#9eadc1]'
+}
 </script>
 
 <template>
@@ -75,6 +99,13 @@ function getTabsInRange(tabIndex) {
             </div>
 
             <div class="flex shrink-0 flex-wrap items-center gap-2">
+                <span
+                    class="w-fit shrink-0 rounded-md border px-2 py-1 text-[0.65rem] font-extrabold uppercase tracking-[0.08em]"
+                    :class="getLanguageClass(source.language)"
+                >
+                    {{ getLanguageLabel(source.language) }}
+                </span>
+
                 <button
                     type="button"
                     :disabled="disabled"
