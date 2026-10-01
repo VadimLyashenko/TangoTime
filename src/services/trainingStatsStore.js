@@ -1,4 +1,10 @@
-import { doc, getDoc, increment, setDoc } from 'firebase/firestore'
+import {
+    doc,
+    getDoc,
+    increment,
+    runTransaction,
+    setDoc,
+} from 'firebase/firestore'
 import { db } from './firebase'
 
 const APP_STATE_DOCUMENT_PATH = ['appState', 'default']
@@ -227,4 +233,48 @@ export async function deleteTrainingStat(statId) {
             merge: true,
         },
     )
+}
+
+export async function setTrainingStatReviewing(statId, reviewing) {
+    const documentReference = doc(db, ...APP_STATE_DOCUMENT_PATH)
+
+    await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(documentReference)
+
+        if (!snapshot.exists()) {
+            return
+        }
+
+        const data = snapshot.data()
+        const currentStats = Array.isArray(data.trainingStats)
+            ? data.trainingStats
+            : []
+        const nextStats = currentStats.map((stat) => {
+            if (stat.id !== statId) {
+                return stat
+            }
+
+            if (reviewing) {
+                return {
+                    ...stat,
+                    reviewing: true,
+                }
+            }
+
+            const { reviewing: _reviewing, ...statWithoutReviewing } = stat
+
+            return statWithoutReviewing
+        })
+
+        transaction.set(
+            documentReference,
+            {
+                trainingStats: nextStats,
+                statisticsUpdatedAt: new Date().toISOString(),
+            },
+            {
+                merge: true,
+            },
+        )
+    })
 }

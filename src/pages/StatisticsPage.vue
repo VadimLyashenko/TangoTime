@@ -5,14 +5,17 @@ import {
     deleteTrainingStat,
     flushTrainingActivity,
     loadTrainingStatisticsData,
+    setTrainingStatReviewing,
 } from '../services/trainingStatsStore'
 
 const stats = ref([])
 const dailyActivity = ref({})
 const loading = ref(false)
 const error = ref('')
+const reviewError = ref('')
 const expandedStatIds = ref(new Set())
 const deletingStatId = ref('')
+const updatingReviewStatIds = ref(new Set())
 let activeAudio = null
 
 onMounted(() => {
@@ -28,6 +31,7 @@ onBeforeUnmount(() => {
 async function loadStats() {
     loading.value = true
     error.value = ''
+    reviewError.value = ''
 
     try {
         await flushTrainingActivity()
@@ -62,6 +66,43 @@ function toggleStat(statId) {
     }
 
     expandedStatIds.value = nextExpandedStatIds
+}
+
+function isStatReviewing(stat) {
+    return stat.reviewing === true
+}
+
+function isReviewStatusUpdating(statId) {
+    return updatingReviewStatIds.value.has(statId)
+}
+
+async function toggleStatReviewing(stat) {
+    if (isReviewStatusUpdating(stat.id)) {
+        return
+    }
+
+    const reviewing = !isStatReviewing(stat)
+    const nextUpdatingReviewStatIds = new Set(updatingReviewStatIds.value)
+
+    nextUpdatingReviewStatIds.add(stat.id)
+    updatingReviewStatIds.value = nextUpdatingReviewStatIds
+    stat.reviewing = reviewing
+    reviewError.value = ''
+
+    try {
+        await setTrainingStatReviewing(stat.id, reviewing)
+    } catch (updateError) {
+        stat.reviewing = !reviewing
+        reviewError.value =
+            updateError.message || 'Could not update the review marker.'
+    } finally {
+        const remainingUpdatingReviewStatIds = new Set(
+            updatingReviewStatIds.value,
+        )
+
+        remainingUpdatingReviewStatIds.delete(stat.id)
+        updatingReviewStatIds.value = remainingUpdatingReviewStatIds
+    }
 }
 
 async function removeStat(statId) {
@@ -173,6 +214,13 @@ function getLanguageLabel(stat) {
         </div>
 
         <div v-else>
+            <div
+                v-if="reviewError"
+                class="mb-4 border border-[#f06a67]/35 bg-[#2a202b] px-4 py-3 text-sm font-bold text-[#f58a87]"
+            >
+                {{ reviewError }}
+            </div>
+
             <ActivityCalendar :daily-activity="dailyActivity" :stats="stats" />
 
             <div
@@ -231,7 +279,9 @@ function getLanguageLabel(stat) {
                             </button>
 
                             <div class="min-w-0">
-                                <div class="flex min-w-0 items-center gap-2">
+                                <div
+                                    class="flex min-w-0 flex-wrap items-center gap-2"
+                                >
                                     <h2
                                         class="truncate text-lg font-extrabold text-[#f3f6fa]"
                                     >
@@ -248,6 +298,49 @@ function getLanguageLabel(stat) {
                                     >
                                         Test
                                     </span>
+                                    <button
+                                        type="button"
+                                        :aria-label="
+                                            isStatReviewing(stat)
+                                                ? 'Stop reviewing this statistic'
+                                                : 'Mark this statistic for review'
+                                        "
+                                        :aria-pressed="isStatReviewing(stat)"
+                                        :title="
+                                            isStatReviewing(stat)
+                                                ? 'Stop reviewing'
+                                                : 'Mark for review'
+                                        "
+                                        :disabled="
+                                            isReviewStatusUpdating(stat.id)
+                                        "
+                                        :class="[
+                                            'inline-flex h-6 shrink-0 cursor-pointer items-center gap-1 rounded border px-1.5 text-[0.62rem] font-extrabold uppercase tracking-[0.08em] transition active:scale-95 disabled:cursor-wait disabled:opacity-55',
+                                            isStatReviewing(stat)
+                                                ? 'border-[#f4b860]/70 bg-[#f4b860]/15 text-[#ffd38a]'
+                                                : 'border-[#3a4a62] bg-[#141e2f] text-[#8291a7] hover:border-[#f4b860]/60 hover:text-[#ffd38a]',
+                                        ]"
+                                        @click="toggleStatReviewing(stat)"
+                                    >
+                                        <svg
+                                            aria-hidden="true"
+                                            class="h-3.5 w-3.5"
+                                            viewBox="0 0 24 24"
+                                            :fill="
+                                                isStatReviewing(stat)
+                                                    ? 'currentColor'
+                                                    : 'none'
+                                            "
+                                        >
+                                            <path
+                                                d="M7 4.5h10v15l-5-3-5 3z"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linejoin="round"
+                                            />
+                                        </svg>
+                                        Review
+                                    </button>
                                 </div>
                                 <p
                                     class="mt-0.5 text-xs font-bold text-[#8291a7]"
