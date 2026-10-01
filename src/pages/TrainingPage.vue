@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { getSheetRows } from '../services/googleSheets'
+import { getSheetRows, getSheetRowsBatch } from '../services/googleSheets'
 import {
     recordTrainingActivity,
     rollbackTrainingActivity,
@@ -568,20 +568,18 @@ async function loadTabWords(sourceId, tabTitle, language = 'japanese') {
 
 async function loadTestWords(set) {
     const tabTitles = Array.isArray(set.tabTitles) ? set.tabTitles : []
-    const tabResults = await Promise.all(
-        tabTitles.map(async (tabTitle) => {
-            const result = await loadTabWords(
-                set.sourceId,
-                tabTitle,
-                set.language,
-            )
+    const rowsByTab = await getSheetRowsBatch(set.sourceId, tabTitles)
+    const tabResults = tabTitles.map((tabTitle, index) => {
+        const loadedRows = rowsByTab[index] || []
+        const result = parseWordsRowsResult(loadedRows, set.language)
 
-            return {
-                tabTitle,
-                ...result,
-            }
-        }),
-    )
+        return {
+            tabTitle,
+            rows: loadedRows,
+            words: result.words,
+            skippedRows: result.skippedRows,
+        }
+    })
 
     return tabResults.reduce(
         (combinedResult, tabResult) => {

@@ -79,8 +79,38 @@ export async function getSheetRows(spreadsheetId, tabTitle) {
 
     const data = await response.json()
 
-    return (data.values || []).filter((row) =>
-        row.some((cell) => String(cell || '').trim()),
+    return filterEmptyRows(data.values)
+}
+
+export async function getSheetRowsBatch(spreadsheetId, tabTitles) {
+    if (!spreadsheetId || !tabTitles?.length) {
+        return []
+    }
+
+    if (!GOOGLE_SHEETS_API_KEY) {
+        throw new Error('Google Sheets API key is missing.')
+    }
+
+    const endpoint = new URL(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet`,
+    )
+
+    tabTitles.forEach((tabTitle) => {
+        endpoint.searchParams.append('ranges', createSheetRange(tabTitle))
+    })
+    endpoint.searchParams.set('majorDimension', 'ROWS')
+    endpoint.searchParams.set('key', GOOGLE_SHEETS_API_KEY)
+
+    const response = await fetchGoogleSheets(endpoint)
+
+    if (!response.ok) {
+        throw new Error('Could not load words from these Google Sheets tabs.')
+    }
+
+    const data = await response.json()
+
+    return (data.valueRanges || []).map((valueRange) =>
+        filterEmptyRows(valueRange.values),
     )
 }
 
@@ -158,6 +188,10 @@ function detectLanguageFromValues(values) {
     }
 
     return 'unknown'
+}
+
+function filterEmptyRows(rows = []) {
+    return rows.filter((row) => row.some((cell) => String(cell || '').trim()))
 }
 
 async function fetchGoogleSheets(endpoint) {
