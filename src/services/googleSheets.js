@@ -176,7 +176,7 @@ async function fetchGoogleSheets(endpoint) {
     }
 }
 
-function createSheetRange(tabTitle, columns = 'A:Z') {
+function createSheetRange(tabTitle, columns = 'A:F') {
     const escapedTitle = tabTitle.replaceAll("'", "''")
 
     return `'${escapedTitle}'!${columns}`
