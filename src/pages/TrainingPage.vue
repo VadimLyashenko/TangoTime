@@ -90,13 +90,33 @@ const currentPromptText = computed(() => {
         : currentWord.value.translation
 })
 
+const japanesePromptSizeClass = computed(() => {
+    const length = Array.from(
+        currentPromptText.value.replace(/\s+/g, ''),
+    ).length
+
+    if (length <= 6) {
+        return 'text-[clamp(5rem,28vw,12rem)] leading-none'
+    }
+
+    if (length <= 12) {
+        return 'text-[clamp(4rem,18vw,8rem)] leading-[1.05]'
+    }
+
+    if (length <= 20) {
+        return 'text-[clamp(3rem,12vw,5.5rem)] leading-[1.12]'
+    }
+
+    return 'text-[clamp(2.25rem,8vw,4rem)] leading-[1.18]'
+})
+
 const currentPromptClass = computed(() => {
     if (!isShowingSource.value) {
         return 'mx-auto max-w-220 text-balance break-words text-[clamp(2.25rem,10vw,4.5rem)] font-extrabold leading-tight'
     }
 
     if (isJapaneseSource.value) {
-        return 'japanese-text text-[clamp(5rem,28vw,12rem)] leading-none'
+        return `japanese-text mx-auto max-w-full text-balance break-words ${japanesePromptSizeClass.value}`
     }
 
     return 'english-text mx-auto max-w-220 text-balance break-words text-[clamp(2.35rem,10vw,5.5rem)] leading-[1.05]'
