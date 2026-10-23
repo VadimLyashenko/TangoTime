@@ -90,10 +90,12 @@ const currentPromptText = computed(() => {
         : currentWord.value.translation
 })
 
+const japanesePromptLength = computed(
+    () => Array.from(currentPromptText.value.replace(/\s+/g, '')).length,
+)
+
 const japanesePromptSizeClass = computed(() => {
-    const length = Array.from(
-        currentPromptText.value.replace(/\s+/g, ''),
-    ).length
+    const length = japanesePromptLength.value
 
     if (length <= 6) {
         return 'text-[clamp(5rem,28vw,12rem)] leading-none'
@@ -110,13 +112,19 @@ const japanesePromptSizeClass = computed(() => {
     return 'text-[clamp(2.25rem,8vw,4rem)] leading-[1.18]'
 })
 
+const japanesePromptWrapClass = computed(() =>
+    japanesePromptLength.value <= 6
+        ? 'whitespace-nowrap'
+        : 'text-balance break-words',
+)
+
 const currentPromptClass = computed(() => {
     if (!isShowingSource.value) {
         return 'mx-auto max-w-220 text-balance break-words text-[clamp(2.25rem,10vw,4.5rem)] font-extrabold leading-tight'
     }
 
     if (isJapaneseSource.value) {
-        return `japanese-text mx-auto max-w-full text-balance break-words ${japanesePromptSizeClass.value}`
+        return `japanese-text mx-auto max-w-full ${japanesePromptWrapClass.value} ${japanesePromptSizeClass.value}`
     }
 
     return 'english-text mx-auto max-w-220 text-balance break-words text-[clamp(2.35rem,10vw,5.5rem)] leading-[1.05]'
