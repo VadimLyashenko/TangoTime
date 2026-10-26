@@ -94,11 +94,15 @@ const japanesePromptLength = computed(
     () => Array.from(currentPromptText.value.replace(/\s+/g, '')).length,
 )
 
+const isJapanesePromptSentence = computed(() =>
+    /[\s、。！？!?；;：:]/u.test(currentPromptText.value.trim()),
+)
+
 const japanesePromptSizeClass = computed(() => {
     const length = japanesePromptLength.value
 
-    if (length <= 6) {
-        return 'text-[clamp(5rem,28vw,12rem)] leading-none'
+    if (!isJapanesePromptSentence.value) {
+        return 'japanese-prompt-term leading-none whitespace-nowrap'
     }
 
     if (length <= 12) {
@@ -113,10 +117,22 @@ const japanesePromptSizeClass = computed(() => {
 })
 
 const japanesePromptWrapClass = computed(() =>
-    japanesePromptLength.value <= 6
-        ? 'whitespace-nowrap'
-        : 'text-balance break-words',
+    isJapanesePromptSentence.value ? 'text-balance break-words' : '',
 )
+
+const currentPromptStyle = computed(() => {
+    if (
+        !isShowingSource.value ||
+        !isJapaneseSource.value ||
+        isJapanesePromptSentence.value
+    ) {
+        return undefined
+    }
+
+    return {
+        '--japanese-prompt-length': Math.max(japanesePromptLength.value, 1),
+    }
+})
 
 const currentPromptClass = computed(() => {
     if (!isShowingSource.value) {
@@ -891,12 +907,16 @@ function handleResetSourceLessonsEvent(event) {
                     >
                         <div class="flex min-h-0 w-full flex-col">
                             <Transition name="word-card" mode="out-in">
-                                <div :key="currentWord.id">
+                                <div
+                                    :key="currentWord.id"
+                                    class="japanese-prompt-container"
+                                >
                                     <h2
                                         :class="[
                                             'text-[#f3f6fa]',
                                             currentPromptClass,
                                         ]"
+                                        :style="currentPromptStyle"
                                     >
                                         {{ currentPromptText }}
                                     </h2>
